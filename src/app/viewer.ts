@@ -8,7 +8,8 @@ import {
   signal,
   viewChild,
 } from '@angular/core';
-import { createGlContext, GlCaps } from '../engine/gl/context';
+import { AttractorEngine } from '../engine/engine';
+import { GlCaps } from '../engine/gl/context';
 
 @Component({
   selector: 'app-viewer',
@@ -17,6 +18,8 @@ import { createGlContext, GlCaps } from '../engine/gl/context';
     <canvas #canvas></canvas>
     @if (caps(); as caps) {
       <dl class="probe">
+        <dt>Frame rate</dt>
+        <dd>{{ fps() }} fps</dd>
         <dt>Renderer</dt>
         <dd>{{ caps.renderer }}</dd>
         <dt>Version</dt>
@@ -82,16 +85,17 @@ export class Viewer {
   private readonly canvas = viewChild.required<ElementRef<HTMLCanvasElement>>('canvas');
   protected readonly caps = signal<GlCaps | null>(null);
   protected readonly error = signal<string | null>(null);
+  protected readonly fps = signal(0);
 
   constructor() {
     const destroyRef = inject(DestroyRef);
     afterNextRender(() => {
       try {
-        const { gl, caps } = createGlContext(this.canvas().nativeElement);
-        this.caps.set(caps);
-        gl.clearColor(12 / 255, 16 / 255, 15 / 255, 1);
-        gl.clear(gl.COLOR_BUFFER_BIT);
-        destroyRef.onDestroy(() => gl.getExtension('WEBGL_lose_context')?.loseContext());
+        const engine = new AttractorEngine(this.canvas().nativeElement);
+        this.caps.set(engine.caps);
+        engine.onStats((stats) => this.fps.set(Math.round(stats.fps)));
+        engine.start();
+        destroyRef.onDestroy(() => engine.dispose());
       } catch (cause) {
         this.error.set(cause instanceof Error ? cause.message : String(cause));
       }
