@@ -1,11 +1,10 @@
-import { Component, signal } from '@angular/core';
+import { Component } from '@angular/core';
+import { Viewer } from './viewer';
 
 @Component({
   selector: 'app-root',
-  imports: [],
+  imports: [Viewer],
   templateUrl: './app.html',
-  styleUrl: './app.css'
+  styleUrl: './app.css',
 })
-export class App {
-  protected readonly title = signal('attractors');
-}
+export class App {}
