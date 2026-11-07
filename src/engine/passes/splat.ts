@@ -1,7 +1,6 @@
-import { Program } from '../gl/program';
+import { AttractorPreset } from '../attractors/attractor';
 import { RenderTarget } from '../gl/target';
-import splatFrag from '../shaders/splat.frag.glsl';
-import splatVert from '../shaders/splat.vert.glsl';
+import { PresetPrograms } from './preset-programs';
 
 export interface SplatView {
   center: [number, number, number];
@@ -9,24 +8,23 @@ export interface SplatView {
   yaw: number;
 }
 
-const POINT_COLOR: [number, number, number] = [3 / 255, 5 / 255, 5 / 255];
+const PARTICLE_GAIN = 0.031;
 
 export class SplatPass {
-  private readonly program: Program;
+  constructor(
+    private readonly gl: WebGL2RenderingContext,
+    private readonly programs: PresetPrograms,
+  ) {}
 
-  constructor(private readonly gl: WebGL2RenderingContext) {
-    this.program = new Program(gl, { splatVert }, { splatFrag });
-    this.program.use();
-    gl.uniform1i(this.program.location('uState'), 0);
-    gl.uniform3f(this.program.location('uColor'), ...POINT_COLOR);
-  }
-
-  run(target: RenderTarget, state: RenderTarget, view: SplatView): void {
+  run(target: RenderTarget, state: RenderTarget, preset: AttractorPreset, view: SplatView): void {
     const gl = this.gl;
-    const program = this.program;
+    const program = this.programs.splat(preset);
     target.clear([0, 0, 0, 0]);
     program.use();
     state.bindTexture(0);
+    gl.uniform1i(program.location('uState'), 0);
+    gl.uniform1f(program.location('uTypicalSpeed'), preset.typicalSpeed);
+    gl.uniform1f(program.location('uGain'), PARTICLE_GAIN);
     gl.uniform3f(program.location('uCenter'), ...view.center);
     gl.uniform1f(program.location('uHalfExtent'), view.halfExtent);
     gl.uniform1f(program.location('uYaw'), view.yaw);
@@ -34,9 +32,5 @@ export class SplatPass {
     gl.enable(gl.BLEND);
     gl.blendFunc(gl.ONE, gl.ONE);
     gl.drawArrays(gl.POINTS, 0, state.width * state.height);
-  }
-
-  dispose(): void {
-    this.program.dispose();
   }
 }

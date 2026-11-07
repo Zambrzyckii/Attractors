@@ -55,7 +55,7 @@ export class AttractorEngine {
     this.seed = new SeedPass(gl);
     this.programs = new PresetPrograms(gl);
     this.simulate = new SimulatePass(gl, this.programs);
-    this.splat = new SplatPass(gl);
+    this.splat = new SplatPass(gl, this.programs);
     this.accumulate = new AccumulatePass(gl);
     this.composite = new CompositePass(gl);
     this.blowUp = new BlowUpPass(gl);
@@ -109,7 +109,7 @@ export class AttractorEngine {
     this.applyPendingSize();
     this.yaw += dt * YAW_SPEED;
     this.simulate.run(this.state, this.preset, dt * this.preset.timeScale);
-    this.splat.run(this.splatTarget, this.state.read, {
+    this.splat.run(this.splatTarget, this.state.read, this.preset, {
       center: this.preset.center,
       halfExtent: this.preset.halfExtent,
       yaw: this.yaw,

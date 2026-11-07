@@ -3,8 +3,10 @@ uniform vec3 uCenter;
 uniform float uHalfExtent;
 uniform float uYaw;
 uniform vec2 uViewport;
+uniform float uTypicalSpeed;
+uniform float uGain;
 
-out float vBrightness;
+flat out vec3 vColor;
 flat out float vSigma;
 flat out float vPointSize;
 
@@ -12,6 +14,7 @@ const float PITCH = 0.38;
 const float CAMERA_DISTANCE = 3.4;
 const float SCALE = 0.4;
 const float SIGMA = 1.0;
+const float PALETTE_SPAN = 1.7;
 
 void main() {
   int width = textureSize(uState, 0).x;
@@ -28,5 +31,6 @@ void main() {
   gl_PointSize = pointSize;
   vSigma = SIGMA;
   vPointSize = pointSize;
-  vBrightness = perspective * perspective;
+  float speed = length(deriv(position));
+  vColor = palette(speed / (PALETTE_SPAN * uTypicalSpeed)) * uGain * perspective * perspective;
 }
