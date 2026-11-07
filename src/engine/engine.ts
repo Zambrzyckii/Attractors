@@ -19,6 +19,8 @@ import { findQuality, QualityPreset } from './settings';
 
 export interface EngineStats {
   fps: number;
+  particles: number;
+  exposure: number;
 }
 
 const STATS_INTERVAL_SECONDS = 0.25;
@@ -168,7 +170,7 @@ export class AttractorEngine {
     this.meter.measure(this.bloom.level(METER_LEVEL));
     this.bloom.upsample();
     this.composite.run(this.history.read, this.bloom.output, exposure);
-    this.reportStats(dt);
+    this.reportStats(dt, exposure);
   }
 
   private applyPendingSize(): void {
@@ -205,7 +207,7 @@ export class AttractorEngine {
     return [Math.max(1, this.canvas.width), Math.max(1, this.canvas.height)];
   }
 
-  private reportStats(dt: number): void {
+  private reportStats(dt: number, exposure: number): void {
     if (dt <= 0) {
       return;
     }
@@ -213,7 +215,11 @@ export class AttractorEngine {
     this.sinceStats += dt;
     if (this.sinceStats >= STATS_INTERVAL_SECONDS) {
       this.sinceStats = 0;
-      this.statsListener?.({ fps: 1 / this.frameSeconds });
+      this.statsListener?.({
+        fps: 1 / this.frameSeconds,
+        particles: this.quality.width * this.quality.height,
+        exposure,
+      });
     }
   }
 }
