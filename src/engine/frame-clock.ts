@@ -25,3 +25,25 @@ export class FrameClock {
 export function smoothing(dt: number, tau: number): number {
   return 1 - Math.exp(-dt / tau);
 }
+
+const REFRESH_SAMPLES = 16;
+
+export function measureRefreshRate(): Promise<number> {
+  return new Promise((resolve) => {
+    const intervals: number[] = [];
+    let lastNow = -1;
+    const tick = (now: number) => {
+      if (lastNow >= 0) {
+        intervals.push(now - lastNow);
+      }
+      lastNow = now;
+      if (intervals.length < REFRESH_SAMPLES) {
+        requestAnimationFrame(tick);
+        return;
+      }
+      intervals.sort((a, b) => a - b);
+      resolve(1000 / intervals[intervals.length >> 1]);
+    };
+    requestAnimationFrame(tick);
+  });
+}

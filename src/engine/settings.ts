@@ -15,11 +15,16 @@ export const QUALITIES: readonly QualityPreset[] = [
 ];
 
 export const DEFAULT_QUALITY = 'medium';
+const HIGH_REFRESH_RATE = 100;
 
 const ALL_QUALITIES = [TINY, ...QUALITIES];
 
 export function hasQuality(id: string): boolean {
   return ALL_QUALITIES.some((candidate) => candidate.id === id);
+}
+
+export function defaultQualityFor(refreshRate: number): string {
+  return refreshRate >= HIGH_REFRESH_RATE ? 'medium' : 'high';
 }
 
 export function findQuality(id: string): QualityPreset {

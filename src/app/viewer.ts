@@ -10,6 +10,8 @@ import {
   viewChild,
 } from '@angular/core';
 import { AttractorEngine } from '../engine/engine';
+import { measureRefreshRate } from '../engine/frame-clock';
+import { defaultQualityFor } from '../engine/settings';
 import { ControlPanel } from './control-panel';
 import { Hud } from './hud';
 import { ViewerStore } from './viewer-store';
@@ -62,7 +64,13 @@ export class Viewer {
   constructor() {
     const destroyRef = inject(DestroyRef);
     const injector = inject(Injector);
-    afterNextRender(() => {
+    afterNextRender(async () => {
+      if (!this.store.qualityPinned) {
+        this.store.qualityId.set(defaultQualityFor(await measureRefreshRate()));
+        if (destroyRef.destroyed) {
+          return;
+        }
+      }
       try {
         const engine = new AttractorEngine(this.canvas().nativeElement, this.store.qualityId());
         this.engine = engine;
