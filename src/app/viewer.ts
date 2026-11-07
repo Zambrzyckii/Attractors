@@ -3,19 +3,24 @@ import {
   afterNextRender,
   Component,
   DestroyRef,
+  effect,
   ElementRef,
   inject,
+  Injector,
   signal,
   viewChild,
 } from '@angular/core';
 import { AttractorEngine } from '../engine/engine';
 import { GlCaps } from '../engine/gl/context';
+import { ControlPanel } from './control-panel';
+import { ViewerStore } from './viewer-store';
 
 @Component({
   selector: 'app-viewer',
-  imports: [KeyValuePipe],
+  imports: [ControlPanel, KeyValuePipe],
   template: `
     <canvas #canvas></canvas>
+    <app-control-panel />
     @if (caps(); as caps) {
       <dl class="probe">
         <dt>Frame rate</dt>
@@ -90,9 +95,11 @@ export class Viewer {
   protected readonly caps = signal<GlCaps | null>(null);
   protected readonly error = signal<string | null>(null);
   protected readonly fps = signal(0);
+  private readonly store = inject(ViewerStore);
 
   constructor() {
     const destroyRef = inject(DestroyRef);
+    const injector = inject(Injector);
     afterNextRender(() => {
       try {
         const engine = new AttractorEngine(this.canvas().nativeElement);
@@ -100,6 +107,7 @@ export class Viewer {
         engine.onStats((stats) => this.fps.set(Math.round(stats.fps)));
         engine.start();
         destroyRef.onDestroy(() => engine.dispose());
+        effect(() => engine.setAttractor(this.store.attractorId()), { injector });
         const onKeyDown = (event: KeyboardEvent) => {
           if (event.code === 'KeyB') {
             engine.blowUpParticles();

@@ -1,4 +1,5 @@
-import { LORENZ } from './attractors/lorenz';
+import { AttractorPreset } from './attractors/attractor';
+import { ATTRACTORS, findAttractor } from './attractors/registry';
 import { FrameClock, smoothing } from './frame-clock';
 import { createGlContext, GlCaps } from './gl/context';
 import { PingPong } from './gl/ping-pong';
@@ -22,7 +23,7 @@ export class AttractorEngine {
   readonly caps: GlCaps;
   private readonly gl: WebGL2RenderingContext;
   private readonly clock = new FrameClock();
-  private readonly preset = LORENZ;
+  private preset: AttractorPreset = ATTRACTORS[0];
   private readonly state: PingPong;
   private readonly anchor: PingPong;
   private readonly programs: PresetPrograms;
@@ -69,6 +70,15 @@ export class AttractorEngine {
 
   blowUpParticles(): void {
     this.blowUp.run(this.state, this.preset);
+  }
+
+  setAttractor(id: string): void {
+    const preset = findAttractor(id);
+    if (preset === this.preset) {
+      return;
+    }
+    this.preset = preset;
+    this.reseed();
   }
 
   dispose(): void {
