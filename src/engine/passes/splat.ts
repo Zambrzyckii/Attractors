@@ -18,7 +18,7 @@ const REFERENCE_SIDE = 1080;
 const REFERENCE_PARTICLES = 1024 * 1024;
 const BATCH_PARTICLES = 1024 * 1024;
 const SHARP_SIGMA = 1;
-const MAX_SIGMA = 8;
+const MAX_SIGMA = 4;
 
 export class SplatPass {
   private readonly copy: Program;
