@@ -23,4 +23,7 @@ export const AIZAWA: AttractorPreset = {
   halfExtent: 1.49,
   timeScale: 3,
   maxStep: 0.01,
+  start: [0.1, 0, 0],
+  spread: 0.14,
+  seedAroundZ: true,
 };

@@ -1,3 +1,4 @@
+import { AttractorPreset } from '../attractors/attractor';
 import { Program } from '../gl/program';
 import { RenderTarget } from '../gl/target';
 import common from '../shaders/common.glsl';
@@ -9,15 +10,18 @@ export class SeedPass {
 
   constructor(private readonly gl: WebGL2RenderingContext) {
     this.program = new Program(gl, { fullscreenVert }, { common, seedFrag });
+    this.program.use();
+    gl.uniform1i(this.program.location('uAnchor'), 0);
   }
 
-  run(target: RenderTarget, center: [number, number, number], halfSize: number): void {
+  run(target: RenderTarget, anchor: RenderTarget, preset: AttractorPreset): void {
     const gl = this.gl;
     target.bind();
     gl.disable(gl.BLEND);
     this.program.use();
-    gl.uniform3f(this.program.location('uCenter'), ...center);
-    gl.uniform1f(this.program.location('uHalfSize'), halfSize);
+    anchor.bindTexture(0);
+    gl.uniform1f(this.program.location('uSpread'), preset.spread);
+    gl.uniform1i(this.program.location('uAroundZ'), preset.seedAroundZ ? 1 : 0);
     gl.drawArrays(gl.TRIANGLES, 0, 3);
   }
 

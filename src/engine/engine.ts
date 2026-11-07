@@ -13,6 +13,7 @@ export interface EngineStats {
 
 const STATS_INTERVAL_SECONDS = 0.25;
 const STATE_SIZE = 1024;
+const ANCHOR_WARMUP_STEPS = 3000;
 const INITIAL_YAW = 0.4;
 const YAW_SPEED = 0.2;
 
@@ -22,6 +23,7 @@ export class AttractorEngine {
   private readonly clock = new FrameClock();
   private readonly preset = LORENZ;
   private readonly state: PingPong;
+  private readonly anchor: PingPong;
   private readonly programs: PresetPrograms;
   private readonly seed: SeedPass;
   private readonly simulate: SimulatePass;
@@ -38,11 +40,12 @@ export class AttractorEngine {
     this.gl = gl;
     this.caps = caps;
     this.state = new PingPong(gl, STATE_SIZE, STATE_SIZE, 'rgba32f');
+    this.anchor = new PingPong(gl, 1, 1, 'rgba32f');
     this.seed = new SeedPass(gl);
-    this.seed.run(this.state.read, this.preset.center, this.preset.halfExtent / 2);
     this.programs = new PresetPrograms(gl);
     this.simulate = new SimulatePass(gl, this.programs);
     this.splat = new SplatPass(gl);
+    this.reseed();
     this.resizeObserver = new ResizeObserver(([entry]) => {
       const ratio = window.devicePixelRatio;
       this.pendingSize = [
@@ -65,6 +68,12 @@ export class AttractorEngine {
     this.clock.stop();
     this.resizeObserver.disconnect();
     this.gl.getExtension('WEBGL_lose_context')?.loseContext();
+  }
+
+  private reseed(): void {
+    this.anchor.read.clear([...this.preset.start, 0]);
+    this.simulate.runSteps(this.anchor, this.preset, ANCHOR_WARMUP_STEPS);
+    this.seed.run(this.state.read, this.anchor.read, this.preset);
   }
 
   private frame(dt: number): void {

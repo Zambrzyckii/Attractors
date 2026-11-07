@@ -12,4 +12,7 @@ export interface AttractorPreset {
   halfExtent: number;
   timeScale: number;
   maxStep: number;
+  start: [number, number, number];
+  spread: number;
+  seedAroundZ?: boolean;
 }

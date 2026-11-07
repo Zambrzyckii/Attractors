@@ -14,4 +14,6 @@ export const BURKE_SHAW: AttractorPreset = {
   halfExtent: 2.24,
   timeScale: 0.72,
   maxStep: 0.003,
+  start: [-1.011, 0.507, -0.938],
+  spread: 0.07,
 };
