@@ -14,7 +14,7 @@ export class SimulatePass {
   ) {}
 
   run(state: PingPong, attractor: LiveAttractor, simDelta: number): void {
-    const { maxStep } = attractor.preset;
+    const { maxStep } = attractor;
     const steps = Math.min(MAX_STEPS_PER_DRAW, Math.ceil(simDelta / maxStep));
     if (steps === 0) {
       return;
@@ -25,7 +25,7 @@ export class SimulatePass {
   runSteps(state: PingPong, attractor: LiveAttractor, count: number): void {
     for (let done = 0; done < count; done += MAX_STEPS_PER_DRAW) {
       const steps = Math.min(MAX_STEPS_PER_DRAW, count - done);
-      this.draw(state, attractor, steps, attractor.preset.maxStep);
+      this.draw(state, attractor, steps, attractor.maxStep);
     }
   }
 

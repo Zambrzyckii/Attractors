@@ -6,12 +6,14 @@ import fullscreenVert from '../shaders/fullscreen.vert.glsl';
 import palette from '../shaders/palette.glsl';
 import rk4 from '../shaders/rk4.glsl';
 import simulateFrag from '../shaders/simulate.frag.glsl';
+import speedMapFrag from '../shaders/speed-map.frag.glsl';
 import splatFrag from '../shaders/splat.frag.glsl';
 import splatVert from '../shaders/splat.vert.glsl';
 
 export class PresetPrograms {
   private readonly simulatePrograms = new Map<string, Program>();
   private readonly splatPrograms = new Map<string, Program>();
+  private readonly speedMapPrograms = new Map<string, Program>();
 
   constructor(private readonly gl: WebGL2RenderingContext) {}
 
@@ -41,8 +43,17 @@ export class PresetPrograms {
     return program;
   }
 
+  speedMap(preset: AttractorPreset): Program {
+    let program = this.speedMapPrograms.get(preset.id);
+    if (!program) {
+      program = new Program(this.gl, { fullscreenVert }, { ...derivChunks(preset), speedMapFrag });
+      this.speedMapPrograms.set(preset.id, program);
+    }
+    return program;
+  }
+
   dispose(): void {
-    for (const programs of [this.simulatePrograms, this.splatPrograms]) {
+    for (const programs of [this.simulatePrograms, this.splatPrograms, this.speedMapPrograms]) {
       programs.forEach((program) => program.dispose());
       programs.clear();
     }

@@ -108,7 +108,7 @@ export class AttractorEngine {
     this.bloom = new BloomPass(gl);
     this.meter = new ExposureMeter(gl);
     this.resizeBloom();
-    this.stats = new StatsPass(gl);
+    this.stats = new StatsPass(gl, this.programs);
     this.composite = new CompositePass(gl);
     this.blowUp = new BlowUpPass(gl);
     this.history = this.createHistory();
@@ -226,7 +226,7 @@ export class AttractorEngine {
     return [
       {
         name: 'Simulate',
-        run: (dt) => this.simulate.run(this.state, this.attractor, dt * this.preset.timeScale),
+        run: (dt) => this.simulate.run(this.state, this.attractor, dt * this.attractor.timeScale),
       },
       {
         name: 'Splat',
@@ -243,7 +243,7 @@ export class AttractorEngine {
       },
       { name: 'Meter', run: () => this.meter.measure(this.bloom.level(METER_LEVEL)) },
       { name: 'Bloom up', run: () => this.bloom.upsample() },
-      { name: 'Stats', run: () => this.stats.measure(this.state.read, this.preset.center) },
+      { name: 'Stats', run: () => this.stats.measure(this.state.read, this.attractor) },
       {
         name: 'Composite',
         run: (_, exposure) => this.composite.run(this.history.read, this.bloom.output, exposure),

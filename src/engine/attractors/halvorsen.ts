@@ -11,6 +11,7 @@ export const HALVORSEN: AttractorPreset = {
   halfExtent: 9.84,
   centroid: [-3.094, -3.094, -3.094],
   rmsRadius: 7.65,
+  meanSpeed: 38.17,
   typicalSpeed: 38.4,
   timeScale: 0.96,
   maxStep: 0.004,

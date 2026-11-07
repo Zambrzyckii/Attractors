@@ -62,7 +62,7 @@ export class SplatPass {
     const count = state.width * state.height;
     program.use();
     gl.uniform1i(program.location('uState'), 0);
-    gl.uniform1f(program.location('uTypicalSpeed'), preset.typicalSpeed);
+    gl.uniform1f(program.location('uTypicalSpeed'), attractor.typicalSpeed);
     gl.uniform4fv(program.location('uParams'), attractor.params);
     const screenScale = (Math.min(this.frame.width, this.frame.height) / REFERENCE_SIDE) ** 2;
     const particleScale = REFERENCE_PARTICLES / count;

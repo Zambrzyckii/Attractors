@@ -15,6 +15,7 @@ export const LORENZ: AttractorPreset = {
   halfExtent: 25.9,
   centroid: [0, 0, 23.55],
   rmsRadius: 14.78,
+  meanSpeed: 95.7,
   typicalSpeed: 95,
   timeScale: 0.72,
   maxStep: 0.004,
