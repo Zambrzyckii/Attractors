@@ -3,7 +3,6 @@ import { ATTRACTORS, findAttractor } from './attractors/registry';
 import { FrameClock, smoothing } from './frame-clock';
 import { createGlContext, GlCaps } from './gl/context';
 import { PingPong } from './gl/ping-pong';
-import { RenderTarget } from './gl/target';
 import { OrbitControls } from './input/orbit-controls';
 import { OrbitCamera } from './math/orbit-camera';
 import { AccumulatePass } from './passes/accumulate';
@@ -70,7 +69,6 @@ export class AttractorEngine {
   private readonly meter: ExposureMeter;
   private readonly composite: CompositePass;
   private readonly blowUp: BlowUpPass;
-  private splatTarget: RenderTarget;
   private history: PingPong;
   private readonly pipeline: PipelineStep[];
   private readonly pixel = new Uint8Array(4);
@@ -95,14 +93,18 @@ export class AttractorEngine {
     this.seed = new SeedPass(gl);
     this.programs = new PresetPrograms(gl);
     this.simulate = new SimulatePass(gl, this.programs);
-    this.splat = new SplatPass(gl, this.programs);
+    this.splat = new SplatPass(
+      gl,
+      this.programs,
+      caps.extensions['EXT_float_blend'],
+      ...this.screenSize(),
+    );
     this.accumulate = new AccumulatePass(gl);
     this.bloom = new BloomPass(gl);
     this.meter = new ExposureMeter(gl);
     this.resizeBloom();
     this.composite = new CompositePass(gl);
     this.blowUp = new BlowUpPass(gl);
-    this.splatTarget = this.createSplatTarget();
     this.history = this.createHistory();
     this.pipeline = this.createPipeline();
     this.camera.azimuth = INITIAL_AZIMUTH;
@@ -218,18 +220,15 @@ export class AttractorEngine {
       {
         name: 'Splat',
         run: () =>
-          this.splat.run(this.splatTarget, this.state.read, this.preset, {
-            viewProjection: this.camera.viewProjection(
-              this.splatTarget.width,
-              this.splatTarget.height,
-            ),
+          this.splat.run(this.state.read, this.preset, {
+            viewProjection: this.camera.viewProjection(...this.screenSize()),
             referenceDepth: this.framingDistance(),
           }),
       },
       {
         name: 'Accumulate',
         run: (dt) =>
-          this.accumulate.run(this.history, this.splatTarget, smoothing(dt, TRAIL_SECONDS)),
+          this.accumulate.run(this.history, this.splat.output, smoothing(dt, TRAIL_SECONDS)),
       },
       {
         name: 'Bloom down',
@@ -282,9 +281,8 @@ export class AttractorEngine {
     if (this.pendingSize) {
       [this.canvas.width, this.canvas.height] = this.pendingSize;
       this.pendingSize = null;
-      this.splatTarget.dispose();
+      this.splat.resize(...this.screenSize());
       this.history.dispose();
-      this.splatTarget = this.createSplatTarget();
       this.history = this.createHistory();
       this.resizeBloom();
     }
@@ -298,10 +296,6 @@ export class AttractorEngine {
 
   private createState(quality: QualityPreset): PingPong {
     return new PingPong(this.gl, quality.width, quality.height, 'rgba32f');
-  }
-
-  private createSplatTarget(): RenderTarget {
-    return new RenderTarget(this.gl, ...this.screenSize(), 'rgba16f');
   }
 
   private createHistory(): PingPong {
