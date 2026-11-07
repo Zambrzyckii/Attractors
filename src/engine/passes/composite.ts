@@ -1,5 +1,6 @@
 import { Program } from '../gl/program';
 import { RenderTarget } from '../gl/target';
+import common from '../shaders/common.glsl';
 import compositeFrag from '../shaders/composite.frag.glsl';
 import fullscreenVert from '../shaders/fullscreen.vert.glsl';
 import tonemap from '../shaders/tonemap.glsl';
@@ -10,9 +11,10 @@ const BLOOM_STRENGTH = 0.15;
 
 export class CompositePass {
   private readonly program: Program;
+  private frames = 0;
 
   constructor(private readonly gl: WebGL2RenderingContext) {
-    this.program = new Program(gl, { fullscreenVert }, { tonemap, compositeFrag });
+    this.program = new Program(gl, { fullscreenVert }, { common, tonemap, compositeFrag });
     this.program.use();
     gl.uniform1i(this.program.location('uHdr'), 0);
     gl.uniform1i(this.program.location('uBloom'), 1);
@@ -28,6 +30,7 @@ export class CompositePass {
     gl.disable(gl.BLEND);
     this.program.use();
     gl.uniform1f(this.program.location('uExposure'), exposure);
+    gl.uniform1ui(this.program.location('uFrame'), this.frames++);
     hdr.bindTexture(0);
     bloom.bindTexture(1);
     gl.drawArrays(gl.TRIANGLES, 0, 3);
