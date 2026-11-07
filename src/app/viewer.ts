@@ -80,6 +80,8 @@ import { GlCaps } from '../engine/gl/context';
       left: 16px;
       margin: 0;
       font-size: 17px;
+      font-family: ui-monospace, monospace;
+      white-space: pre-wrap;
     }
   `,
 })
