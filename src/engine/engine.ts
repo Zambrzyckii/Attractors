@@ -4,6 +4,7 @@ import { FrameClock, smoothing } from './frame-clock';
 import { createGlContext, GlCaps } from './gl/context';
 import { PingPong } from './gl/ping-pong';
 import { RenderTarget } from './gl/target';
+import { OrbitControls } from './input/orbit-controls';
 import { OrbitCamera } from './math/orbit-camera';
 import { AccumulatePass } from './passes/accumulate';
 import { BlowUpPass } from './passes/blow-up';
@@ -24,7 +25,6 @@ const INITIAL_AZIMUTH = 0.4 - Math.PI / 2;
 const ELEVATION = -0.38;
 const CAMERA_DISTANCE = 3.4;
 const FOCAL_LENGTH = 2.72;
-const AUTO_ROTATE_SPEED = 0.2;
 const TRAIL_SECONDS = 0.11;
 
 export class AttractorEngine {
@@ -46,6 +46,7 @@ export class AttractorEngine {
   private readonly resizeObserver: ResizeObserver;
   private pendingSize: [number, number] | null = null;
   private readonly camera = new OrbitCamera();
+  private readonly controls: OrbitControls;
   private statsListener: ((stats: EngineStats) => void) | null = null;
   private frameSeconds = 1 / 60;
   private sinceStats = 0;
@@ -69,6 +70,7 @@ export class AttractorEngine {
     this.camera.elevation = ELEVATION;
     this.camera.focalLength = FOCAL_LENGTH;
     this.frameCamera();
+    this.controls = new OrbitControls(canvas, this.camera);
     this.reseed();
     this.resizeObserver = new ResizeObserver(([entry]) => {
       const ratio = window.devicePixelRatio;
@@ -105,12 +107,12 @@ export class AttractorEngine {
   dispose(): void {
     this.clock.stop();
     this.resizeObserver.disconnect();
+    this.controls.dispose();
     this.gl.getExtension('WEBGL_lose_context')?.loseContext();
   }
 
   private frameCamera(): void {
     this.camera.target = [...this.preset.center];
-    this.camera.distance = CAMERA_DISTANCE * this.preset.halfExtent;
   }
 
   private reseed(): void {
@@ -121,11 +123,13 @@ export class AttractorEngine {
 
   private frame(dt: number): void {
     this.applyPendingSize();
-    this.camera.azimuth += dt * AUTO_ROTATE_SPEED;
+    this.controls.update(dt);
+    const framingDistance = CAMERA_DISTANCE * this.preset.halfExtent;
+    this.camera.distance = framingDistance * this.controls.zoom;
     this.simulate.run(this.state, this.preset, dt * this.preset.timeScale);
     this.splat.run(this.splatTarget, this.state.read, this.preset, {
       viewProjection: this.camera.viewProjection(this.splatTarget.width, this.splatTarget.height),
-      referenceDepth: CAMERA_DISTANCE * this.preset.halfExtent,
+      referenceDepth: framingDistance,
     });
     this.accumulate.run(this.history, this.splatTarget, smoothing(dt, TRAIL_SECONDS));
     this.composite.run(this.history.read);
