@@ -9,26 +9,35 @@ import { PresetPrograms } from './preset-programs';
 export interface SplatView {
   viewProjection: Mat4;
   referenceDepth: number;
+  focusDistance: number;
+  blurScale: number;
 }
 
 const PARTICLE_GAIN = 0.031;
 const REFERENCE_SIDE = 1080;
 const REFERENCE_PARTICLES = 1024 * 1024;
 const BATCH_PARTICLES = 1024 * 1024;
+const SHARP_SIGMA = 1;
+const MAX_SIGMA = 8;
 
 export class SplatPass {
   private readonly copy: Program;
   private frame: RenderTarget;
   private sum: RenderTarget | null;
   private written: RenderTarget;
+  private readonly maxSigma: number;
+  private frames = 0;
 
   constructor(
     private readonly gl: WebGL2RenderingContext,
     private readonly programs: PresetPrograms,
     private readonly floatBlend: boolean,
+    maxPointSize: number,
     width: number,
     height: number,
   ) {
+    const fittingSigma = Math.floor((maxPointSize - 1) / 6);
+    this.maxSigma = Math.max(SHARP_SIGMA, Math.min(MAX_SIGMA, fittingSigma));
     this.copy = new Program(gl, { fullscreenVert }, { copyFrag });
     this.copy.use();
     gl.uniform1i(this.copy.location('uSource'), 0);
@@ -58,6 +67,10 @@ export class SplatPass {
     gl.uniform1f(program.location('uGain'), PARTICLE_GAIN * screenScale * particleScale);
     gl.uniformMatrix4fv(program.location('uViewProjection'), false, view.viewProjection);
     gl.uniform1f(program.location('uReferenceDepth'), view.referenceDepth);
+    gl.uniform1f(program.location('uFocusDistance'), view.focusDistance);
+    gl.uniform1f(program.location('uBlurScale'), view.blurScale);
+    gl.uniform1f(program.location('uMaxSigma'), this.maxSigma);
+    gl.uniform1ui(program.location('uFrame'), this.frames++);
     gl.enable(gl.BLEND);
     gl.blendFunc(gl.ONE, gl.ONE);
     if (!this.sum || count <= BATCH_PARTICLES) {

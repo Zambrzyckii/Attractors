@@ -30,7 +30,11 @@ export class PresetPrograms {
   splat(preset: AttractorPreset): Program {
     let program = this.splatPrograms.get(preset.id);
     if (!program) {
-      program = new Program(this.gl, { ...derivChunks(preset), palette, splatVert }, { splatFrag });
+      program = new Program(
+        this.gl,
+        { ...derivChunks(preset), common, palette, splatVert },
+        { splatFrag },
+      );
       this.splatPrograms.set(preset.id, program);
     }
     return program;

@@ -13,7 +13,7 @@ import { ExposureMeter, METER_LEVEL } from './passes/exposure-meter';
 import { PresetPrograms } from './passes/preset-programs';
 import { SeedPass } from './passes/seed';
 import { SimulatePass } from './passes/simulate';
-import { SplatPass } from './passes/splat';
+import { SplatPass, SplatView } from './passes/splat';
 import { findQuality, QUALITIES, QualityPreset } from './settings';
 
 export interface EngineStats {
@@ -46,6 +46,7 @@ const INITIAL_AZIMUTH = 0.4 - Math.PI / 2;
 const ELEVATION = -0.38;
 const CAMERA_DISTANCE = 3.4;
 const FOCAL_LENGTH = 2.72;
+const APERTURE = 0.022;
 const TRAIL_SECONDS = 0.11;
 const BENCHMARK_FRAMES = 120;
 const BENCHMARK_WARMUP_FRAMES = 10;
@@ -97,6 +98,7 @@ export class AttractorEngine {
       gl,
       this.programs,
       caps.extensions['EXT_float_blend'],
+      caps.pointSizeRange[1],
       ...this.screenSize(),
     );
     this.accumulate = new AccumulatePass(gl);
@@ -217,14 +219,7 @@ export class AttractorEngine {
         name: 'Simulate',
         run: (dt) => this.simulate.run(this.state, this.preset, dt * this.preset.timeScale),
       },
-      {
-        name: 'Splat',
-        run: () =>
-          this.splat.run(this.state.read, this.preset, {
-            viewProjection: this.camera.viewProjection(...this.screenSize()),
-            referenceDepth: this.framingDistance(),
-          }),
-      },
+      { name: 'Splat', run: () => this.splat.run(this.state.read, this.preset, this.splatView()) },
       {
         name: 'Accumulate',
         run: (dt) =>
@@ -245,6 +240,17 @@ export class AttractorEngine {
 
   private framingDistance(): number {
     return CAMERA_DISTANCE * this.preset.halfExtent;
+  }
+
+  private splatView(): SplatView {
+    const [width, height] = this.screenSize();
+    const focalPixels = (this.camera.focalLength * Math.min(width, height)) / 2;
+    return {
+      viewProjection: this.camera.viewProjection(width, height),
+      referenceDepth: this.framingDistance(),
+      focusDistance: this.camera.distance,
+      blurScale: APERTURE * this.preset.halfExtent * focalPixels,
+    };
   }
 
   private async benchmarkQuality(quality: QualityPreset, dt: number): Promise<BenchmarkRow> {
