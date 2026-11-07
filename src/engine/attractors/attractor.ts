@@ -10,6 +10,8 @@ export interface AttractorPreset {
   deriv: string;
   center: [number, number, number];
   halfExtent: number;
+  centroid: [number, number, number];
+  rmsRadius: number;
   typicalSpeed: number;
   timeScale: number;
   maxStep: number;

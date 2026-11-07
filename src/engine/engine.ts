@@ -15,6 +15,7 @@ import { PresetPrograms } from './passes/preset-programs';
 import { SeedPass } from './passes/seed';
 import { SimulatePass } from './passes/simulate';
 import { SplatPass, SplatView } from './passes/splat';
+import { StatsPass } from './passes/stats';
 import { findQuality, QUALITIES, QualityPreset } from './settings';
 
 export interface EngineStats {
@@ -69,6 +70,7 @@ export class AttractorEngine {
   private readonly accumulate: AccumulatePass;
   private readonly bloom: BloomPass;
   private readonly meter: ExposureMeter;
+  private readonly stats: StatsPass;
   private readonly composite: CompositePass;
   private readonly blowUp: BlowUpPass;
   private history: PingPong;
@@ -106,6 +108,7 @@ export class AttractorEngine {
     this.bloom = new BloomPass(gl);
     this.meter = new ExposureMeter(gl);
     this.resizeBloom();
+    this.stats = new StatsPass(gl);
     this.composite = new CompositePass(gl);
     this.blowUp = new BlowUpPass(gl);
     this.history = this.createHistory();
@@ -113,7 +116,6 @@ export class AttractorEngine {
     this.camera.azimuth = INITIAL_AZIMUTH;
     this.camera.elevation = ELEVATION;
     this.camera.focalLength = FOCAL_LENGTH;
-    this.frameCamera();
     this.controls = new OrbitControls(canvas, this.camera);
     this.reseed();
     this.resizeObserver = new ResizeObserver(([entry]) => {
@@ -151,7 +153,7 @@ export class AttractorEngine {
       return;
     }
     this.attractor = new LiveAttractor(preset);
-    this.frameCamera();
+    this.stats.invalidate();
     this.reseed();
   }
 
@@ -194,7 +196,8 @@ export class AttractorEngine {
   }
 
   private frameCamera(): void {
-    this.camera.target = [...this.preset.center];
+    this.camera.target = this.attractor.center;
+    this.camera.distance = this.framingDistance() * this.controls.zoom;
   }
 
   private reseed(): void {
@@ -207,7 +210,8 @@ export class AttractorEngine {
     this.applyPendingSize();
     this.controls.update(dt);
     const exposure = this.meter.update(dt);
-    this.camera.distance = this.framingDistance() * this.controls.zoom;
+    this.attractor.follow(this.stats.poll(), dt);
+    this.frameCamera();
     this.render(dt, exposure);
     this.reportStats(dt, exposure);
   }
@@ -239,6 +243,7 @@ export class AttractorEngine {
       },
       { name: 'Meter', run: () => this.meter.measure(this.bloom.level(METER_LEVEL)) },
       { name: 'Bloom up', run: () => this.bloom.upsample() },
+      { name: 'Stats', run: () => this.stats.measure(this.state.read, this.preset.center) },
       {
         name: 'Composite',
         run: (_, exposure) => this.composite.run(this.history.read, this.bloom.output, exposure),
@@ -251,7 +256,7 @@ export class AttractorEngine {
   }
 
   private framingDistance(): number {
-    return CAMERA_DISTANCE * this.preset.halfExtent;
+    return CAMERA_DISTANCE * this.attractor.halfExtent;
   }
 
   private splatView(): SplatView {
@@ -261,7 +266,7 @@ export class AttractorEngine {
       viewProjection: this.camera.viewProjection(width, height),
       referenceDepth: this.framingDistance(),
       focusDistance: this.camera.distance,
-      blurScale: APERTURE * this.preset.halfExtent * focalPixels,
+      blurScale: APERTURE * this.attractor.halfExtent * focalPixels,
     };
   }
 
