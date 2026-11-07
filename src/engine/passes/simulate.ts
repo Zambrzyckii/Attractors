@@ -3,6 +3,7 @@ import { PingPong } from '../gl/ping-pong';
 import { PresetPrograms } from './preset-programs';
 
 const MAX_STEPS_PER_DRAW = 64;
+const NOISE_FLOOR = 1e-4;
 
 export class SimulatePass {
   private drawIndex = 0;
@@ -42,6 +43,8 @@ export class SimulatePass {
     gl.uniform3f(program.location('uCenter'), ...preset.center);
     gl.uniform1f(program.location('uHalfExtent'), preset.halfExtent);
     gl.uniform4fv(program.location('uParams'), attractor.params);
+    const noise = NOISE_FLOOR * preset.halfExtent * Math.sqrt(12 * steps * step);
+    gl.uniform1f(program.location('uNoise'), noise);
     gl.uniform1ui(program.location('uDrawIndex'), this.drawIndex++);
     gl.drawArrays(gl.TRIANGLES, 0, 3);
     state.swap();
