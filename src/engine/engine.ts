@@ -1,4 +1,5 @@
 import { AttractorPreset } from './attractors/attractor';
+import { LiveAttractor } from './attractors/live-attractor';
 import { ATTRACTORS, findAttractor } from './attractors/registry';
 import { FrameClock, smoothing } from './frame-clock';
 import { createGlContext, GlCaps } from './gl/context';
@@ -57,7 +58,7 @@ export class AttractorEngine {
   readonly caps: GlCaps;
   private readonly gl: WebGL2RenderingContext;
   private readonly clock = new FrameClock();
-  private preset: AttractorPreset = ATTRACTORS[0];
+  private attractor = new LiveAttractor(ATTRACTORS[0]);
   private quality: QualityPreset;
   private state: PingPong;
   private readonly anchor: PingPong;
@@ -149,9 +150,13 @@ export class AttractorEngine {
     if (preset === this.preset) {
       return;
     }
-    this.preset = preset;
+    this.attractor = new LiveAttractor(preset);
     this.frameCamera();
     this.reseed();
+  }
+
+  setParam(name: string, value: number): void {
+    this.attractor.setParam(name, value);
   }
 
   setQuality(id: string): void {
@@ -194,7 +199,7 @@ export class AttractorEngine {
 
   private reseed(): void {
     this.anchor.read.clear([...this.preset.start, 0]);
-    this.simulate.runSteps(this.anchor, this.preset, ANCHOR_WARMUP_STEPS);
+    this.simulate.runSteps(this.anchor, this.attractor, ANCHOR_WARMUP_STEPS);
     this.seed.run(this.state.read, this.anchor.read, this.preset);
   }
 
@@ -217,9 +222,12 @@ export class AttractorEngine {
     return [
       {
         name: 'Simulate',
-        run: (dt) => this.simulate.run(this.state, this.preset, dt * this.preset.timeScale),
+        run: (dt) => this.simulate.run(this.state, this.attractor, dt * this.preset.timeScale),
       },
-      { name: 'Splat', run: () => this.splat.run(this.state.read, this.preset, this.splatView()) },
+      {
+        name: 'Splat',
+        run: () => this.splat.run(this.state.read, this.attractor, this.splatView()),
+      },
       {
         name: 'Accumulate',
         run: (dt) =>
@@ -236,6 +244,10 @@ export class AttractorEngine {
         run: (_, exposure) => this.composite.run(this.history.read, this.bloom.output, exposure),
       },
     ];
+  }
+
+  private get preset(): AttractorPreset {
+    return this.attractor.preset;
   }
 
   private framingDistance(): number {

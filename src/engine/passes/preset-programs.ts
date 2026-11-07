@@ -1,4 +1,5 @@
 import { AttractorPreset } from '../attractors/attractor';
+import { PARAM_SLOTS } from '../attractors/live-attractor';
 import { Program, ShaderChunks } from '../gl/program';
 import common from '../shaders/common.glsl';
 import fullscreenVert from '../shaders/fullscreen.vert.glsl';
@@ -50,14 +51,14 @@ export class PresetPrograms {
 
 function derivChunks(preset: AttractorPreset): ShaderChunks {
   return {
-    parameters: preset.params
-      .map(({ name, value }) => `#define ${name} (${floatLiteral(value)})`)
-      .join('\n'),
+    parameters: [
+      `uniform vec4 uParams[${PARAM_SLOTS / 4}];`,
+      ...preset.params.map(
+        ({ name }, index) =>
+          `#define ${name} (uParams[${Math.floor(index / 4)}].${'xyzw'[index % 4]})`,
+      ),
+    ].join('\n'),
     deriv: preset.deriv,
     cleanup: preset.params.map(({ name }) => `#undef ${name}`).join('\n'),
   };
-}
-
-function floatLiteral(value: number): string {
-  return Number.isInteger(value) ? value.toFixed(1) : String(value);
 }

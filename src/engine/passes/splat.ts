@@ -1,4 +1,4 @@
-import { AttractorPreset } from '../attractors/attractor';
+import { LiveAttractor } from '../attractors/live-attractor';
 import { Program } from '../gl/program';
 import { RenderTarget } from '../gl/target';
 import { Mat4 } from '../math/mat4';
@@ -55,13 +55,15 @@ export class SplatPass {
     this.written = this.frame;
   }
 
-  run(state: RenderTarget, preset: AttractorPreset, view: SplatView): void {
+  run(state: RenderTarget, attractor: LiveAttractor, view: SplatView): void {
     const gl = this.gl;
+    const preset = attractor.preset;
     const program = this.programs.splat(preset);
     const count = state.width * state.height;
     program.use();
     gl.uniform1i(program.location('uState'), 0);
     gl.uniform1f(program.location('uTypicalSpeed'), preset.typicalSpeed);
+    gl.uniform4fv(program.location('uParams'), attractor.params);
     const screenScale = (Math.min(this.frame.width, this.frame.height) / REFERENCE_SIDE) ** 2;
     const particleScale = REFERENCE_PARTICLES / count;
     gl.uniform1f(program.location('uGain'), PARTICLE_GAIN * screenScale * particleScale);

@@ -1,4 +1,4 @@
-import { AttractorPreset } from '../attractors/attractor';
+import { LiveAttractor } from '../attractors/live-attractor';
 import { PingPong } from '../gl/ping-pong';
 import { PresetPrograms } from './preset-programs';
 
@@ -12,22 +12,25 @@ export class SimulatePass {
     private readonly programs: PresetPrograms,
   ) {}
 
-  run(state: PingPong, preset: AttractorPreset, simDelta: number): void {
-    const steps = Math.min(MAX_STEPS_PER_DRAW, Math.ceil(simDelta / preset.maxStep));
+  run(state: PingPong, attractor: LiveAttractor, simDelta: number): void {
+    const { maxStep } = attractor.preset;
+    const steps = Math.min(MAX_STEPS_PER_DRAW, Math.ceil(simDelta / maxStep));
     if (steps === 0) {
       return;
     }
-    this.draw(state, preset, steps, Math.min(preset.maxStep, simDelta / steps));
+    this.draw(state, attractor, steps, Math.min(maxStep, simDelta / steps));
   }
 
-  runSteps(state: PingPong, preset: AttractorPreset, count: number): void {
+  runSteps(state: PingPong, attractor: LiveAttractor, count: number): void {
     for (let done = 0; done < count; done += MAX_STEPS_PER_DRAW) {
-      this.draw(state, preset, Math.min(MAX_STEPS_PER_DRAW, count - done), preset.maxStep);
+      const steps = Math.min(MAX_STEPS_PER_DRAW, count - done);
+      this.draw(state, attractor, steps, attractor.preset.maxStep);
     }
   }
 
-  private draw(state: PingPong, preset: AttractorPreset, steps: number, step: number): void {
+  private draw(state: PingPong, attractor: LiveAttractor, steps: number, step: number): void {
     const gl = this.gl;
+    const preset = attractor.preset;
     const program = this.programs.simulate(preset);
     state.write.bind();
     gl.disable(gl.BLEND);
@@ -38,6 +41,7 @@ export class SimulatePass {
     gl.uniform1f(program.location('uStep'), step);
     gl.uniform3f(program.location('uCenter'), ...preset.center);
     gl.uniform1f(program.location('uHalfExtent'), preset.halfExtent);
+    gl.uniform4fv(program.location('uParams'), attractor.params);
     gl.uniform1ui(program.location('uDrawIndex'), this.drawIndex++);
     gl.drawArrays(gl.TRIANGLES, 0, 3);
     state.swap();
