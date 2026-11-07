@@ -15,13 +15,13 @@ import { PresetPrograms } from './passes/preset-programs';
 import { SeedPass } from './passes/seed';
 import { SimulatePass } from './passes/simulate';
 import { SplatPass } from './passes/splat';
+import { findQuality, QualityPreset } from './settings';
 
 export interface EngineStats {
   fps: number;
 }
 
 const STATS_INTERVAL_SECONDS = 0.25;
-const STATE_SIZE = 1024;
 const ANCHOR_WARMUP_STEPS = 3000;
 const INITIAL_AZIMUTH = 0.4 - Math.PI / 2;
 const ELEVATION = -0.38;
@@ -34,7 +34,8 @@ export class AttractorEngine {
   private readonly gl: WebGL2RenderingContext;
   private readonly clock = new FrameClock();
   private preset: AttractorPreset = ATTRACTORS[0];
-  private readonly state: PingPong;
+  private quality: QualityPreset;
+  private state: PingPong;
   private readonly anchor: PingPong;
   private readonly programs: PresetPrograms;
   private readonly seed: SeedPass;
@@ -55,11 +56,15 @@ export class AttractorEngine {
   private frameSeconds = 1 / 60;
   private sinceStats = 0;
 
-  constructor(private readonly canvas: HTMLCanvasElement) {
+  constructor(
+    private readonly canvas: HTMLCanvasElement,
+    qualityId: string,
+  ) {
     const { gl, caps } = createGlContext(canvas);
     this.gl = gl;
     this.caps = caps;
-    this.state = new PingPong(gl, STATE_SIZE, STATE_SIZE, 'rgba32f');
+    this.quality = findQuality(qualityId);
+    this.state = this.createState();
     this.anchor = new PingPong(gl, 1, 1, 'rgba32f');
     this.seed = new SeedPass(gl);
     this.programs = new PresetPrograms(gl);
@@ -80,13 +85,20 @@ export class AttractorEngine {
     this.controls = new OrbitControls(canvas, this.camera);
     this.reseed();
     this.resizeObserver = new ResizeObserver(([entry]) => {
+      const box = entry.devicePixelContentBoxSize?.[0];
       const ratio = window.devicePixelRatio;
-      this.pendingSize = [
-        Math.round(entry.contentRect.width * ratio),
-        Math.round(entry.contentRect.height * ratio),
-      ];
+      this.pendingSize = box
+        ? [box.inlineSize, box.blockSize]
+        : [
+            Math.round(entry.contentRect.width * ratio),
+            Math.round(entry.contentRect.height * ratio),
+          ];
     });
-    this.resizeObserver.observe(canvas);
+    try {
+      this.resizeObserver.observe(canvas, { box: 'device-pixel-content-box' });
+    } catch {
+      this.resizeObserver.observe(canvas);
+    }
   }
 
   start(): void {
@@ -109,6 +121,18 @@ export class AttractorEngine {
     this.preset = preset;
     this.frameCamera();
     this.reseed();
+  }
+
+  setQuality(id: string): void {
+    const quality = findQuality(id);
+    if (quality === this.quality) {
+      return;
+    }
+    this.quality = quality;
+    const previous = this.state;
+    this.state = this.createState();
+    this.seed.resample(this.state.read, previous.read, this.preset);
+    previous.dispose();
   }
 
   dispose(): void {
@@ -163,6 +187,10 @@ export class AttractorEngine {
     this.bloom.resize(...this.screenSize());
     const level = this.bloom.level(METER_LEVEL);
     this.meter.resize(level.width, level.height);
+  }
+
+  private createState(): PingPong {
+    return new PingPong(this.gl, this.quality.width, this.quality.height, 'rgba32f');
   }
 
   private createSplatTarget(): RenderTarget {

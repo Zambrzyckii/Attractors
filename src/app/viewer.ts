@@ -107,12 +107,13 @@ export class Viewer {
     const injector = inject(Injector);
     afterNextRender(() => {
       try {
-        const engine = new AttractorEngine(this.canvas().nativeElement);
+        const engine = new AttractorEngine(this.canvas().nativeElement, this.store.qualityId());
         this.caps.set(engine.caps);
         engine.onStats((stats) => this.fps.set(Math.round(stats.fps)));
         engine.start();
         destroyRef.onDestroy(() => engine.dispose());
         effect(() => engine.setAttractor(this.store.attractorId()), { injector });
+        effect(() => engine.setQuality(this.store.qualityId()), { injector });
         const onKeyDown = (event: KeyboardEvent) => {
           if (event.code === 'KeyB') {
             engine.blowUpParticles();
