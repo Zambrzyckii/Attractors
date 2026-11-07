@@ -4,6 +4,7 @@ import { FrameClock, smoothing } from './frame-clock';
 import { createGlContext, GlCaps } from './gl/context';
 import { PingPong } from './gl/ping-pong';
 import { RenderTarget } from './gl/target';
+import { OrbitCamera } from './math/orbit-camera';
 import { AccumulatePass } from './passes/accumulate';
 import { BlowUpPass } from './passes/blow-up';
 import { CompositePass } from './passes/composite';
@@ -19,8 +20,11 @@ export interface EngineStats {
 const STATS_INTERVAL_SECONDS = 0.25;
 const STATE_SIZE = 1024;
 const ANCHOR_WARMUP_STEPS = 3000;
-const INITIAL_YAW = 0.4;
-const YAW_SPEED = 0.2;
+const INITIAL_AZIMUTH = 0.4 - Math.PI / 2;
+const ELEVATION = -0.38;
+const CAMERA_DISTANCE = 3.4;
+const FOCAL_LENGTH = 2.72;
+const AUTO_ROTATE_SPEED = 0.2;
 const TRAIL_SECONDS = 0.11;
 
 export class AttractorEngine {
@@ -41,7 +45,7 @@ export class AttractorEngine {
   private history: PingPong;
   private readonly resizeObserver: ResizeObserver;
   private pendingSize: [number, number] | null = null;
-  private yaw = INITIAL_YAW;
+  private readonly camera = new OrbitCamera();
   private statsListener: ((stats: EngineStats) => void) | null = null;
   private frameSeconds = 1 / 60;
   private sinceStats = 0;
@@ -61,6 +65,10 @@ export class AttractorEngine {
     this.blowUp = new BlowUpPass(gl);
     this.splatTarget = this.createSplatTarget();
     this.history = this.createHistory();
+    this.camera.azimuth = INITIAL_AZIMUTH;
+    this.camera.elevation = ELEVATION;
+    this.camera.focalLength = FOCAL_LENGTH;
+    this.frameCamera();
     this.reseed();
     this.resizeObserver = new ResizeObserver(([entry]) => {
       const ratio = window.devicePixelRatio;
@@ -90,6 +98,7 @@ export class AttractorEngine {
       return;
     }
     this.preset = preset;
+    this.frameCamera();
     this.reseed();
   }
 
@@ -97,6 +106,11 @@ export class AttractorEngine {
     this.clock.stop();
     this.resizeObserver.disconnect();
     this.gl.getExtension('WEBGL_lose_context')?.loseContext();
+  }
+
+  private frameCamera(): void {
+    this.camera.target = [...this.preset.center];
+    this.camera.distance = CAMERA_DISTANCE * this.preset.halfExtent;
   }
 
   private reseed(): void {
@@ -107,12 +121,11 @@ export class AttractorEngine {
 
   private frame(dt: number): void {
     this.applyPendingSize();
-    this.yaw += dt * YAW_SPEED;
+    this.camera.azimuth += dt * AUTO_ROTATE_SPEED;
     this.simulate.run(this.state, this.preset, dt * this.preset.timeScale);
     this.splat.run(this.splatTarget, this.state.read, this.preset, {
-      center: this.preset.center,
-      halfExtent: this.preset.halfExtent,
-      yaw: this.yaw,
+      viewProjection: this.camera.viewProjection(this.splatTarget.width, this.splatTarget.height),
+      referenceDepth: CAMERA_DISTANCE * this.preset.halfExtent,
     });
     this.accumulate.run(this.history, this.splatTarget, smoothing(dt, TRAIL_SECONDS));
     this.composite.run(this.history.read);

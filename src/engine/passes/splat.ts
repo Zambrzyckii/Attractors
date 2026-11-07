@@ -1,11 +1,11 @@
 import { AttractorPreset } from '../attractors/attractor';
 import { RenderTarget } from '../gl/target';
+import { Mat4 } from '../math/mat4';
 import { PresetPrograms } from './preset-programs';
 
 export interface SplatView {
-  center: [number, number, number];
-  halfExtent: number;
-  yaw: number;
+  viewProjection: Mat4;
+  referenceDepth: number;
 }
 
 const PARTICLE_GAIN = 0.031;
@@ -29,10 +29,8 @@ export class SplatPass {
     const screenScale = (Math.min(target.width, target.height) / REFERENCE_SIDE) ** 2;
     const particleScale = REFERENCE_PARTICLES / (state.width * state.height);
     gl.uniform1f(program.location('uGain'), PARTICLE_GAIN * screenScale * particleScale);
-    gl.uniform3f(program.location('uCenter'), ...view.center);
-    gl.uniform1f(program.location('uHalfExtent'), view.halfExtent);
-    gl.uniform1f(program.location('uYaw'), view.yaw);
-    gl.uniform2f(program.location('uViewport'), target.width, target.height);
+    gl.uniformMatrix4fv(program.location('uViewProjection'), false, view.viewProjection);
+    gl.uniform1f(program.location('uReferenceDepth'), view.referenceDepth);
     gl.enable(gl.BLEND);
     gl.blendFunc(gl.ONE, gl.ONE);
     gl.drawArrays(gl.POINTS, 0, state.width * state.height);
