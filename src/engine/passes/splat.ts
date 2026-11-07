@@ -9,6 +9,8 @@ export interface SplatView {
 }
 
 const PARTICLE_GAIN = 0.031;
+const REFERENCE_SIDE = 1080;
+const REFERENCE_PARTICLES = 1024 * 1024;
 
 export class SplatPass {
   constructor(
@@ -24,7 +26,9 @@ export class SplatPass {
     state.bindTexture(0);
     gl.uniform1i(program.location('uState'), 0);
     gl.uniform1f(program.location('uTypicalSpeed'), preset.typicalSpeed);
-    gl.uniform1f(program.location('uGain'), PARTICLE_GAIN);
+    const screenScale = (Math.min(target.width, target.height) / REFERENCE_SIDE) ** 2;
+    const particleScale = REFERENCE_PARTICLES / (state.width * state.height);
+    gl.uniform1f(program.location('uGain'), PARTICLE_GAIN * screenScale * particleScale);
     gl.uniform3f(program.location('uCenter'), ...view.center);
     gl.uniform1f(program.location('uHalfExtent'), view.halfExtent);
     gl.uniform1f(program.location('uYaw'), view.yaw);

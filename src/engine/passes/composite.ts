@@ -4,6 +4,7 @@ import compositeFrag from '../shaders/composite.frag.glsl';
 import fullscreenVert from '../shaders/fullscreen.vert.glsl';
 
 const BACKGROUND: [number, number, number] = [12 / 255, 16 / 255, 15 / 255];
+const EXPOSURE = 16.7;
 
 export class CompositePass {
   private readonly program: Program;
@@ -13,6 +14,7 @@ export class CompositePass {
     this.program.use();
     gl.uniform1i(this.program.location('uHdr'), 0);
     gl.uniform3f(this.program.location('uBackground'), ...BACKGROUND);
+    gl.uniform1f(this.program.location('uExposure'), EXPOSURE);
   }
 
   run(hdr: RenderTarget): void {
