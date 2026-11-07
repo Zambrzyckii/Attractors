@@ -7,6 +7,10 @@ const vec3 PALETTE_COLORS[5] = vec3[5](
   vec3(255.0, 246.0, 228.0)
 );
 
+vec3 srgbToLinear(vec3 encoded) {
+  return mix(encoded / 12.92, pow((encoded + 0.055) / 1.055, vec3(2.4)), step(0.04045, encoded));
+}
+
 vec3 palette(float t) {
   vec3 color = PALETTE_COLORS[0];
   for (int i = 1; i < 5; i++) {
@@ -14,5 +18,5 @@ vec3 palette(float t) {
     float along = clamp((t - start) / (PALETTE_STOPS[i] - start), 0.0, 1.0);
     color = mix(color, PALETTE_COLORS[i], along);
   }
-  return color / 255.0;
+  return srgbToLinear(color / 255.0);
 }

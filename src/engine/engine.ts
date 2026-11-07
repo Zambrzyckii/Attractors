@@ -27,7 +27,7 @@ const ELEVATION = -0.38;
 const CAMERA_DISTANCE = 3.4;
 const FOCAL_LENGTH = 2.72;
 const TRAIL_SECONDS = 0.11;
-const EXPOSURE = 16.7;
+const EXPOSURE = 3.3;
 
 export class AttractorEngine {
   readonly caps: GlCaps;
