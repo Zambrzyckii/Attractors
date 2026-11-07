@@ -1,5 +1,6 @@
 import { AttractorPreset } from '../attractors/attractor';
 import { Program } from '../gl/program';
+import common from '../shaders/common.glsl';
 import fullscreenVert from '../shaders/fullscreen.vert.glsl';
 import rk4 from '../shaders/rk4.glsl';
 import simulateFrag from '../shaders/simulate.frag.glsl';
@@ -21,6 +22,7 @@ export class PresetPrograms {
             .join('\n'),
           deriv: preset.deriv,
           cleanup: preset.params.map(({ name }) => `#undef ${name}`).join('\n'),
+          common,
           rk4,
           simulateFrag,
         },

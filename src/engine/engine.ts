@@ -2,6 +2,7 @@ import { LORENZ } from './attractors/lorenz';
 import { FrameClock, smoothing } from './frame-clock';
 import { createGlContext, GlCaps } from './gl/context';
 import { PingPong } from './gl/ping-pong';
+import { BlowUpPass } from './passes/blow-up';
 import { PresetPrograms } from './passes/preset-programs';
 import { SeedPass } from './passes/seed';
 import { SimulatePass } from './passes/simulate';
@@ -28,6 +29,7 @@ export class AttractorEngine {
   private readonly seed: SeedPass;
   private readonly simulate: SimulatePass;
   private readonly splat: SplatPass;
+  private readonly blowUp: BlowUpPass;
   private readonly resizeObserver: ResizeObserver;
   private pendingSize: [number, number] | null = null;
   private yaw = INITIAL_YAW;
@@ -45,6 +47,7 @@ export class AttractorEngine {
     this.programs = new PresetPrograms(gl);
     this.simulate = new SimulatePass(gl, this.programs);
     this.splat = new SplatPass(gl);
+    this.blowUp = new BlowUpPass(gl);
     this.reseed();
     this.resizeObserver = new ResizeObserver(([entry]) => {
       const ratio = window.devicePixelRatio;
@@ -62,6 +65,10 @@ export class AttractorEngine {
 
   onStats(listener: (stats: EngineStats) => void): void {
     this.statsListener = listener;
+  }
+
+  blowUpParticles(): void {
+    this.blowUp.run(this.state, this.preset);
   }
 
   dispose(): void {

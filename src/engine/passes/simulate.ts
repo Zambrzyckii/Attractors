@@ -5,6 +5,8 @@ import { PresetPrograms } from './preset-programs';
 const MAX_STEPS_PER_DRAW = 64;
 
 export class SimulatePass {
+  private drawIndex = 0;
+
   constructor(
     private readonly gl: WebGL2RenderingContext,
     private readonly programs: PresetPrograms,
@@ -34,6 +36,9 @@ export class SimulatePass {
     gl.uniform1i(program.location('uState'), 0);
     gl.uniform1i(program.location('uSteps'), steps);
     gl.uniform1f(program.location('uStep'), step);
+    gl.uniform3f(program.location('uCenter'), ...preset.center);
+    gl.uniform1f(program.location('uHalfExtent'), preset.halfExtent);
+    gl.uniform1ui(program.location('uDrawIndex'), this.drawIndex++);
     gl.drawArrays(gl.TRIANGLES, 0, 3);
     state.swap();
   }

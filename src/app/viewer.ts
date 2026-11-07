@@ -100,6 +100,13 @@ export class Viewer {
         engine.onStats((stats) => this.fps.set(Math.round(stats.fps)));
         engine.start();
         destroyRef.onDestroy(() => engine.dispose());
+        const onKeyDown = (event: KeyboardEvent) => {
+          if (event.code === 'KeyB') {
+            engine.blowUpParticles();
+          }
+        };
+        window.addEventListener('keydown', onKeyDown);
+        destroyRef.onDestroy(() => window.removeEventListener('keydown', onKeyDown));
       } catch (cause) {
         this.error.set(cause instanceof Error ? cause.message : String(cause));
       }
