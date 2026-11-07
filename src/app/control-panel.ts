@@ -10,6 +10,7 @@ import { ViewerStore } from './viewer-store';
       @for (attractor of attractors; track attractor.id) {
         <button
           type="button"
+          [disabled]="store.benchmarkRunning()"
           [attr.aria-pressed]="attractor.id === store.attractorId()"
           (click)="store.attractorId.set(attractor.id)"
         >
@@ -21,6 +22,7 @@ import { ViewerStore } from './viewer-store';
       @for (quality of qualities; track quality.id) {
         <button
           type="button"
+          [disabled]="store.benchmarkRunning()"
           [attr.aria-pressed]="quality.id === store.qualityId()"
           (click)="store.qualityId.set(quality.id)"
         >
@@ -56,6 +58,9 @@ import { ViewerStore } from './viewer-store';
         14px/1.4 ui-monospace,
         monospace;
       cursor: pointer;
+    }
+    button:disabled {
+      cursor: progress;
     }
     button:hover,
     button[aria-pressed='true'] {

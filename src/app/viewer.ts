@@ -21,7 +21,7 @@ import { ViewerStore } from './viewer-store';
     <canvas #canvas></canvas>
     <app-control-panel />
     @if (renderer(); as renderer) {
-      <app-hud [renderer]="renderer" />
+      <app-hud [renderer]="renderer" (benchmark)="runBenchmark()" />
     }
     @if (error(); as message) {
       <p class="error">{{ message }}</p>
@@ -57,6 +57,7 @@ export class Viewer {
   protected readonly renderer = signal<string | null>(null);
   protected readonly error = signal<string | null>(null);
   private readonly store = inject(ViewerStore);
+  private engine: AttractorEngine | null = null;
 
   constructor() {
     const destroyRef = inject(DestroyRef);
@@ -64,6 +65,7 @@ export class Viewer {
     afterNextRender(() => {
       try {
         const engine = new AttractorEngine(this.canvas().nativeElement, this.store.qualityId());
+        this.engine = engine;
         this.renderer.set(engine.caps.renderer);
         engine.onStats((stats) => this.store.stats.set(stats));
         engine.start();
@@ -81,5 +83,17 @@ export class Viewer {
         this.error.set(cause instanceof Error ? cause.message : String(cause));
       }
     });
+  }
+
+  protected async runBenchmark(): Promise<void> {
+    if (!this.engine || this.store.benchmarkRunning()) {
+      return;
+    }
+    this.store.benchmarkRunning.set(true);
+    try {
+      this.store.benchmark.set(await this.engine.benchmark());
+    } finally {
+      this.store.benchmarkRunning.set(false);
+    }
   }
 }

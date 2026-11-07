@@ -15,12 +15,30 @@ import { PresetPrograms } from './passes/preset-programs';
 import { SeedPass } from './passes/seed';
 import { SimulatePass } from './passes/simulate';
 import { SplatPass } from './passes/splat';
-import { findQuality, QualityPreset } from './settings';
+import { findQuality, QUALITIES, QualityPreset } from './settings';
 
 export interface EngineStats {
   fps: number;
   particles: number;
   exposure: number;
+}
+
+export interface BenchmarkRow {
+  quality: string;
+  particles: number;
+  frameMs: number;
+  passMs: number[];
+}
+
+export interface BenchmarkReport {
+  intervalMs: number;
+  passes: string[];
+  rows: BenchmarkRow[];
+}
+
+interface PipelineStep {
+  name: string;
+  run: (dt: number, exposure: number) => void;
 }
 
 const STATS_INTERVAL_SECONDS = 0.25;
@@ -30,6 +48,10 @@ const ELEVATION = -0.38;
 const CAMERA_DISTANCE = 3.4;
 const FOCAL_LENGTH = 2.72;
 const TRAIL_SECONDS = 0.11;
+const BENCHMARK_FRAMES = 120;
+const BENCHMARK_WARMUP_FRAMES = 10;
+
+const nextTask = () => new Promise<void>((resolve) => setTimeout(resolve));
 
 export class AttractorEngine {
   readonly caps: GlCaps;
@@ -50,6 +72,8 @@ export class AttractorEngine {
   private readonly blowUp: BlowUpPass;
   private splatTarget: RenderTarget;
   private history: PingPong;
+  private readonly pipeline: PipelineStep[];
+  private readonly pixel = new Uint8Array(4);
   private readonly resizeObserver: ResizeObserver;
   private pendingSize: [number, number] | null = null;
   private readonly camera = new OrbitCamera();
@@ -66,7 +90,7 @@ export class AttractorEngine {
     this.gl = gl;
     this.caps = caps;
     this.quality = findQuality(qualityId);
-    this.state = this.createState();
+    this.state = this.createState(this.quality);
     this.anchor = new PingPong(gl, 1, 1, 'rgba32f');
     this.seed = new SeedPass(gl);
     this.programs = new PresetPrograms(gl);
@@ -80,6 +104,7 @@ export class AttractorEngine {
     this.blowUp = new BlowUpPass(gl);
     this.splatTarget = this.createSplatTarget();
     this.history = this.createHistory();
+    this.pipeline = this.createPipeline();
     this.camera.azimuth = INITIAL_AZIMUTH;
     this.camera.elevation = ELEVATION;
     this.camera.focalLength = FOCAL_LENGTH;
@@ -132,9 +157,24 @@ export class AttractorEngine {
     }
     this.quality = quality;
     const previous = this.state;
-    this.state = this.createState();
+    this.state = this.createState(quality);
     this.seed.resample(this.state.read, previous.read, this.preset);
     previous.dispose();
+  }
+
+  async benchmark(): Promise<BenchmarkReport> {
+    const dt = this.frameSeconds;
+    const original = this.state;
+    const rows: BenchmarkRow[] = [];
+    for (const quality of QUALITIES) {
+      const temporary = this.createState(quality);
+      this.seed.resample(temporary.read, original.read, this.preset);
+      this.state = temporary;
+      rows.push(await this.benchmarkQuality(quality, dt));
+      this.state = original;
+      temporary.dispose();
+    }
+    return { intervalMs: dt * 1000, passes: this.pipeline.map((step) => step.name), rows };
   }
 
   dispose(): void {
@@ -158,19 +198,84 @@ export class AttractorEngine {
     this.applyPendingSize();
     this.controls.update(dt);
     const exposure = this.meter.update(dt);
-    const framingDistance = CAMERA_DISTANCE * this.preset.halfExtent;
-    this.camera.distance = framingDistance * this.controls.zoom;
-    this.simulate.run(this.state, this.preset, dt * this.preset.timeScale);
-    this.splat.run(this.splatTarget, this.state.read, this.preset, {
-      viewProjection: this.camera.viewProjection(this.splatTarget.width, this.splatTarget.height),
-      referenceDepth: framingDistance,
-    });
-    this.accumulate.run(this.history, this.splatTarget, smoothing(dt, TRAIL_SECONDS));
-    this.bloom.downsample(this.history.read, exposure);
-    this.meter.measure(this.bloom.level(METER_LEVEL));
-    this.bloom.upsample();
-    this.composite.run(this.history.read, this.bloom.output, exposure);
+    this.camera.distance = this.framingDistance() * this.controls.zoom;
+    this.render(dt, exposure);
     this.reportStats(dt, exposure);
+  }
+
+  private render(dt: number, exposure: number): void {
+    for (const step of this.pipeline) {
+      step.run(dt, exposure);
+    }
+  }
+
+  private createPipeline(): PipelineStep[] {
+    return [
+      {
+        name: 'Simulate',
+        run: (dt) => this.simulate.run(this.state, this.preset, dt * this.preset.timeScale),
+      },
+      {
+        name: 'Splat',
+        run: () =>
+          this.splat.run(this.splatTarget, this.state.read, this.preset, {
+            viewProjection: this.camera.viewProjection(
+              this.splatTarget.width,
+              this.splatTarget.height,
+            ),
+            referenceDepth: this.framingDistance(),
+          }),
+      },
+      {
+        name: 'Accumulate',
+        run: (dt) =>
+          this.accumulate.run(this.history, this.splatTarget, smoothing(dt, TRAIL_SECONDS)),
+      },
+      {
+        name: 'Bloom down',
+        run: (_, exposure) => this.bloom.downsample(this.history.read, exposure),
+      },
+      { name: 'Meter', run: () => this.meter.measure(this.bloom.level(METER_LEVEL)) },
+      { name: 'Bloom up', run: () => this.bloom.upsample() },
+      {
+        name: 'Composite',
+        run: (_, exposure) => this.composite.run(this.history.read, this.bloom.output, exposure),
+      },
+    ];
+  }
+
+  private framingDistance(): number {
+    return CAMERA_DISTANCE * this.preset.halfExtent;
+  }
+
+  private async benchmarkQuality(quality: QualityPreset, dt: number): Promise<BenchmarkRow> {
+    const exposure = this.meter.update(0);
+    for (let frame = 0; frame < BENCHMARK_WARMUP_FRAMES; frame++) {
+      this.render(dt, exposure);
+    }
+    const frameMs = this.timeFrames(() => this.render(dt, exposure));
+    const passMs: number[] = [];
+    for (const step of this.pipeline) {
+      await nextTask();
+      passMs.push(this.timeFrames(() => step.run(dt, exposure)));
+    }
+    return { quality: quality.name, particles: quality.width * quality.height, frameMs, passMs };
+  }
+
+  private timeFrames(run: () => void): number {
+    this.waitForGpu();
+    const start = performance.now();
+    for (let frame = 0; frame < BENCHMARK_FRAMES; frame++) {
+      run();
+    }
+    this.waitForGpu();
+    return (performance.now() - start) / BENCHMARK_FRAMES;
+  }
+
+  private waitForGpu(): void {
+    const gl = this.gl;
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, this.pixel);
   }
 
   private applyPendingSize(): void {
@@ -191,8 +296,8 @@ export class AttractorEngine {
     this.meter.resize(level.width, level.height);
   }
 
-  private createState(): PingPong {
-    return new PingPong(this.gl, this.quality.width, this.quality.height, 'rgba32f');
+  private createState(quality: QualityPreset): PingPong {
+    return new PingPong(this.gl, quality.width, quality.height, 'rgba32f');
   }
 
   private createSplatTarget(): RenderTarget {
