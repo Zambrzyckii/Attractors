@@ -4,6 +4,7 @@ import { FrameClock, smoothing } from './frame-clock';
 import { createGlContext, GlCaps } from './gl/context';
 import { PingPong } from './gl/ping-pong';
 import { RenderTarget } from './gl/target';
+import { AccumulatePass } from './passes/accumulate';
 import { BlowUpPass } from './passes/blow-up';
 import { CompositePass } from './passes/composite';
 import { PresetPrograms } from './passes/preset-programs';
@@ -20,6 +21,7 @@ const STATE_SIZE = 1024;
 const ANCHOR_WARMUP_STEPS = 3000;
 const INITIAL_YAW = 0.4;
 const YAW_SPEED = 0.2;
+const TRAIL_SECONDS = 0.11;
 
 export class AttractorEngine {
   readonly caps: GlCaps;
@@ -32,9 +34,11 @@ export class AttractorEngine {
   private readonly seed: SeedPass;
   private readonly simulate: SimulatePass;
   private readonly splat: SplatPass;
+  private readonly accumulate: AccumulatePass;
   private readonly composite: CompositePass;
   private readonly blowUp: BlowUpPass;
   private splatTarget: RenderTarget;
+  private history: PingPong;
   private readonly resizeObserver: ResizeObserver;
   private pendingSize: [number, number] | null = null;
   private yaw = INITIAL_YAW;
@@ -52,9 +56,11 @@ export class AttractorEngine {
     this.programs = new PresetPrograms(gl);
     this.simulate = new SimulatePass(gl, this.programs);
     this.splat = new SplatPass(gl);
+    this.accumulate = new AccumulatePass(gl);
     this.composite = new CompositePass(gl);
     this.blowUp = new BlowUpPass(gl);
     this.splatTarget = this.createSplatTarget();
+    this.history = this.createHistory();
     this.reseed();
     this.resizeObserver = new ResizeObserver(([entry]) => {
       const ratio = window.devicePixelRatio;
@@ -108,7 +114,8 @@ export class AttractorEngine {
       halfExtent: this.preset.halfExtent,
       yaw: this.yaw,
     });
-    this.composite.run(this.splatTarget);
+    this.accumulate.run(this.history, this.splatTarget, smoothing(dt, TRAIL_SECONDS));
+    this.composite.run(this.history.read);
     this.reportStats(dt);
   }
 
@@ -117,14 +124,22 @@ export class AttractorEngine {
       [this.canvas.width, this.canvas.height] = this.pendingSize;
       this.pendingSize = null;
       this.splatTarget.dispose();
+      this.history.dispose();
       this.splatTarget = this.createSplatTarget();
+      this.history = this.createHistory();
     }
   }
 
   private createSplatTarget(): RenderTarget {
-    const width = Math.max(1, this.canvas.width);
-    const height = Math.max(1, this.canvas.height);
-    return new RenderTarget(this.gl, width, height, 'rgba16f');
+    return new RenderTarget(this.gl, ...this.screenSize(), 'rgba16f');
+  }
+
+  private createHistory(): PingPong {
+    return new PingPong(this.gl, ...this.screenSize(), 'rgba16f');
+  }
+
+  private screenSize(): [number, number] {
+    return [Math.max(1, this.canvas.width), Math.max(1, this.canvas.height)];
   }
 
   private reportStats(dt: number): void {
