@@ -1,38 +1,30 @@
+import { AttractorPreset } from '../attractors/attractor';
 import { PingPong } from '../gl/ping-pong';
-import { Program } from '../gl/program';
-import fullscreenVert from '../shaders/fullscreen.vert.glsl';
-import lorenz from '../shaders/lorenz.glsl';
-import rk4 from '../shaders/rk4.glsl';
-import simulateFrag from '../shaders/simulate.frag.glsl';
+import { PresetPrograms } from './preset-programs';
 
 const MAX_STEPS_PER_FRAME = 64;
 
 export class SimulatePass {
-  private readonly program: Program;
+  constructor(
+    private readonly gl: WebGL2RenderingContext,
+    private readonly programs: PresetPrograms,
+  ) {}
 
-  constructor(private readonly gl: WebGL2RenderingContext) {
-    this.program = new Program(gl, { fullscreenVert }, { lorenz, rk4, simulateFrag });
-    this.program.use();
-    gl.uniform1i(this.program.location('uState'), 0);
-  }
-
-  run(state: PingPong, simDelta: number, maxStep: number): void {
-    const steps = Math.min(MAX_STEPS_PER_FRAME, Math.ceil(simDelta / maxStep));
+  run(state: PingPong, preset: AttractorPreset, simDelta: number): void {
+    const steps = Math.min(MAX_STEPS_PER_FRAME, Math.ceil(simDelta / preset.maxStep));
     if (steps === 0) {
       return;
     }
     const gl = this.gl;
+    const program = this.programs.simulate(preset);
     state.write.bind();
     gl.disable(gl.BLEND);
-    this.program.use();
+    program.use();
     state.read.bindTexture(0);
-    gl.uniform1i(this.program.location('uSteps'), steps);
-    gl.uniform1f(this.program.location('uStep'), Math.min(maxStep, simDelta / steps));
+    gl.uniform1i(program.location('uState'), 0);
+    gl.uniform1i(program.location('uSteps'), steps);
+    gl.uniform1f(program.location('uStep'), Math.min(preset.maxStep, simDelta / steps));
     gl.drawArrays(gl.TRIANGLES, 0, 3);
     state.swap();
-  }
-
-  dispose(): void {
-    this.program.dispose();
   }
 }

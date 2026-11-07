@@ -1,0 +1,14 @@
+import { AttractorPreset } from './attractor';
+
+export const HALVORSEN: AttractorPreset = {
+  id: 'halvorsen',
+  name: 'Halvorsen',
+  params: [{ name: 'a', value: 1.4 }],
+  deriv: `vec3 deriv(vec3 p) {
+  return -a * p - 4.0 * (p.yzx + p.zxy) - p.yzx * p.yzx;
+}`,
+  center: [-3.49, -3.49, -3.49],
+  halfExtent: 9.84,
+  timeScale: 0.96,
+  maxStep: 0.004,
+};

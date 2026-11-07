@@ -1,6 +1,8 @@
+import { LORENZ } from './attractors/lorenz';
 import { FrameClock, smoothing } from './frame-clock';
 import { createGlContext, GlCaps } from './gl/context';
 import { PingPong } from './gl/ping-pong';
+import { PresetPrograms } from './passes/preset-programs';
 import { SeedPass } from './passes/seed';
 import { SimulatePass } from './passes/simulate';
 import { SplatPass } from './passes/splat';
@@ -11,10 +13,6 @@ export interface EngineStats {
 
 const STATS_INTERVAL_SECONDS = 0.25;
 const STATE_SIZE = 1024;
-const LORENZ_CENTER: [number, number, number] = [0, 0, 24.8];
-const LORENZ_HALF_EXTENT = 25.9;
-const LORENZ_TIME_SCALE = 0.72;
-const LORENZ_MAX_STEP = 0.004;
 const INITIAL_YAW = 0.4;
 const YAW_SPEED = 0.2;
 
@@ -22,7 +20,9 @@ export class AttractorEngine {
   readonly caps: GlCaps;
   private readonly gl: WebGL2RenderingContext;
   private readonly clock = new FrameClock();
+  private readonly preset = LORENZ;
   private readonly state: PingPong;
+  private readonly programs: PresetPrograms;
   private readonly seed: SeedPass;
   private readonly simulate: SimulatePass;
   private readonly splat: SplatPass;
@@ -39,8 +39,9 @@ export class AttractorEngine {
     this.caps = caps;
     this.state = new PingPong(gl, STATE_SIZE, STATE_SIZE, 'rgba32f');
     this.seed = new SeedPass(gl);
-    this.seed.run(this.state.read, LORENZ_CENTER, LORENZ_HALF_EXTENT / 2);
-    this.simulate = new SimulatePass(gl);
+    this.seed.run(this.state.read, this.preset.center, this.preset.halfExtent / 2);
+    this.programs = new PresetPrograms(gl);
+    this.simulate = new SimulatePass(gl, this.programs);
     this.splat = new SplatPass(gl);
     this.resizeObserver = new ResizeObserver(([entry]) => {
       const ratio = window.devicePixelRatio;
@@ -69,10 +70,10 @@ export class AttractorEngine {
   private frame(dt: number): void {
     this.applyPendingSize();
     this.yaw += dt * YAW_SPEED;
-    this.simulate.run(this.state, dt * LORENZ_TIME_SCALE, LORENZ_MAX_STEP);
+    this.simulate.run(this.state, this.preset, dt * this.preset.timeScale);
     this.splat.run(this.state.read, {
-      center: LORENZ_CENTER,
-      halfExtent: LORENZ_HALF_EXTENT,
+      center: this.preset.center,
+      halfExtent: this.preset.halfExtent,
       yaw: this.yaw,
       width: this.canvas.width,
       height: this.canvas.height,
