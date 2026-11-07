@@ -7,11 +7,8 @@ export interface SplatView {
   center: [number, number, number];
   halfExtent: number;
   yaw: number;
-  width: number;
-  height: number;
 }
 
-const BACKGROUND: [number, number, number] = [12 / 255, 16 / 255, 15 / 255];
 const POINT_COLOR: [number, number, number] = [3 / 255, 5 / 255, 5 / 255];
 
 export class SplatPass {
@@ -24,19 +21,16 @@ export class SplatPass {
     gl.uniform3f(this.program.location('uColor'), ...POINT_COLOR);
   }
 
-  run(state: RenderTarget, view: SplatView): void {
+  run(target: RenderTarget, state: RenderTarget, view: SplatView): void {
     const gl = this.gl;
     const program = this.program;
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-    gl.viewport(0, 0, view.width, view.height);
-    gl.clearColor(...BACKGROUND, 1);
-    gl.clear(gl.COLOR_BUFFER_BIT);
+    target.clear([0, 0, 0, 0]);
     program.use();
     state.bindTexture(0);
     gl.uniform3f(program.location('uCenter'), ...view.center);
     gl.uniform1f(program.location('uHalfExtent'), view.halfExtent);
     gl.uniform1f(program.location('uYaw'), view.yaw);
-    gl.uniform2f(program.location('uViewport'), view.width, view.height);
+    gl.uniform2f(program.location('uViewport'), target.width, target.height);
     gl.enable(gl.BLEND);
     gl.blendFunc(gl.ONE, gl.ONE);
     gl.drawArrays(gl.POINTS, 0, state.width * state.height);

@@ -5,10 +5,13 @@ uniform float uYaw;
 uniform vec2 uViewport;
 
 out float vBrightness;
+flat out float vSigma;
+flat out float vPointSize;
 
 const float PITCH = 0.38;
 const float CAMERA_DISTANCE = 3.4;
 const float SCALE = 0.4;
+const float SIGMA = 1.0;
 
 void main() {
   int width = textureSize(uState, 0).x;
@@ -21,6 +24,9 @@ void main() {
   float perspective = CAMERA_DISTANCE / (CAMERA_DISTANCE + z2);
   float side = min(uViewport.x, uViewport.y);
   gl_Position = vec4(vec2(x1, y1) * perspective * 2.0 * SCALE * side / uViewport, 0.0, 1.0);
-  gl_PointSize = 1.0;
+  float pointSize = 2.0 * ceil(3.0 * SIGMA) + 1.0;
+  gl_PointSize = pointSize;
+  vSigma = SIGMA;
+  vPointSize = pointSize;
   vBrightness = perspective * perspective;
 }

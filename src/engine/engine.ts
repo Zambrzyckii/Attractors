@@ -3,7 +3,9 @@ import { ATTRACTORS, findAttractor } from './attractors/registry';
 import { FrameClock, smoothing } from './frame-clock';
 import { createGlContext, GlCaps } from './gl/context';
 import { PingPong } from './gl/ping-pong';
+import { RenderTarget } from './gl/target';
 import { BlowUpPass } from './passes/blow-up';
+import { CompositePass } from './passes/composite';
 import { PresetPrograms } from './passes/preset-programs';
 import { SeedPass } from './passes/seed';
 import { SimulatePass } from './passes/simulate';
@@ -30,7 +32,9 @@ export class AttractorEngine {
   private readonly seed: SeedPass;
   private readonly simulate: SimulatePass;
   private readonly splat: SplatPass;
+  private readonly composite: CompositePass;
   private readonly blowUp: BlowUpPass;
+  private splatTarget: RenderTarget;
   private readonly resizeObserver: ResizeObserver;
   private pendingSize: [number, number] | null = null;
   private yaw = INITIAL_YAW;
@@ -48,7 +52,9 @@ export class AttractorEngine {
     this.programs = new PresetPrograms(gl);
     this.simulate = new SimulatePass(gl, this.programs);
     this.splat = new SplatPass(gl);
+    this.composite = new CompositePass(gl);
     this.blowUp = new BlowUpPass(gl);
+    this.splatTarget = this.createSplatTarget();
     this.reseed();
     this.resizeObserver = new ResizeObserver(([entry]) => {
       const ratio = window.devicePixelRatio;
@@ -97,13 +103,12 @@ export class AttractorEngine {
     this.applyPendingSize();
     this.yaw += dt * YAW_SPEED;
     this.simulate.run(this.state, this.preset, dt * this.preset.timeScale);
-    this.splat.run(this.state.read, {
+    this.splat.run(this.splatTarget, this.state.read, {
       center: this.preset.center,
       halfExtent: this.preset.halfExtent,
       yaw: this.yaw,
-      width: this.canvas.width,
-      height: this.canvas.height,
     });
+    this.composite.run(this.splatTarget);
     this.reportStats(dt);
   }
 
@@ -111,7 +116,15 @@ export class AttractorEngine {
     if (this.pendingSize) {
       [this.canvas.width, this.canvas.height] = this.pendingSize;
       this.pendingSize = null;
+      this.splatTarget.dispose();
+      this.splatTarget = this.createSplatTarget();
     }
+  }
+
+  private createSplatTarget(): RenderTarget {
+    const width = Math.max(1, this.canvas.width);
+    const height = Math.max(1, this.canvas.height);
+    return new RenderTarget(this.gl, width, height, 'rgba16f');
   }
 
   private reportStats(dt: number): void {
