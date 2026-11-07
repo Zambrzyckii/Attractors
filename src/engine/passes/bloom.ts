@@ -24,6 +24,10 @@ export class BloomPass {
     return this.levels[0];
   }
 
+  level(index: number): RenderTarget {
+    return this.levels[index];
+  }
+
   resize(width: number, height: number): void {
     this.disposeLevels();
     for (let index = 0; index < BLOOM_LEVELS; index++) {
@@ -33,18 +37,7 @@ export class BloomPass {
     }
   }
 
-  run(source: RenderTarget, exposure: number): void {
-    this.downsample(source, exposure);
-    this.upsample();
-  }
-
-  dispose(): void {
-    this.down.dispose();
-    this.up.dispose();
-    this.disposeLevels();
-  }
-
-  private downsample(source: RenderTarget, exposure: number): void {
+  downsample(source: RenderTarget, exposure: number): void {
     const gl = this.gl;
     gl.disable(gl.BLEND);
     this.down.use();
@@ -59,7 +52,7 @@ export class BloomPass {
     });
   }
 
-  private upsample(): void {
+  upsample(): void {
     const gl = this.gl;
     gl.enable(gl.BLEND);
     gl.blendFunc(gl.ONE, gl.ONE);
@@ -70,6 +63,12 @@ export class BloomPass {
       this.levels[index + 1].bindTexture(0);
       gl.drawArrays(gl.TRIANGLES, 0, 3);
     }
+  }
+
+  dispose(): void {
+    this.down.dispose();
+    this.up.dispose();
+    this.disposeLevels();
   }
 
   private disposeLevels(): void {

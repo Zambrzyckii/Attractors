@@ -10,6 +10,7 @@ import { AccumulatePass } from './passes/accumulate';
 import { BloomPass } from './passes/bloom';
 import { BlowUpPass } from './passes/blow-up';
 import { CompositePass } from './passes/composite';
+import { ExposureMeter, METER_LEVEL } from './passes/exposure-meter';
 import { PresetPrograms } from './passes/preset-programs';
 import { SeedPass } from './passes/seed';
 import { SimulatePass } from './passes/simulate';
@@ -27,7 +28,6 @@ const ELEVATION = -0.38;
 const CAMERA_DISTANCE = 3.4;
 const FOCAL_LENGTH = 2.72;
 const TRAIL_SECONDS = 0.11;
-const EXPOSURE = 3.3;
 
 export class AttractorEngine {
   readonly caps: GlCaps;
@@ -42,6 +42,7 @@ export class AttractorEngine {
   private readonly splat: SplatPass;
   private readonly accumulate: AccumulatePass;
   private readonly bloom: BloomPass;
+  private readonly meter: ExposureMeter;
   private readonly composite: CompositePass;
   private readonly blowUp: BlowUpPass;
   private splatTarget: RenderTarget;
@@ -66,7 +67,8 @@ export class AttractorEngine {
     this.splat = new SplatPass(gl, this.programs);
     this.accumulate = new AccumulatePass(gl);
     this.bloom = new BloomPass(gl);
-    this.bloom.resize(...this.screenSize());
+    this.meter = new ExposureMeter(gl);
+    this.resizeBloom();
     this.composite = new CompositePass(gl);
     this.blowUp = new BlowUpPass(gl);
     this.splatTarget = this.createSplatTarget();
@@ -129,6 +131,7 @@ export class AttractorEngine {
   private frame(dt: number): void {
     this.applyPendingSize();
     this.controls.update(dt);
+    const exposure = this.meter.update(dt);
     const framingDistance = CAMERA_DISTANCE * this.preset.halfExtent;
     this.camera.distance = framingDistance * this.controls.zoom;
     this.simulate.run(this.state, this.preset, dt * this.preset.timeScale);
@@ -137,8 +140,10 @@ export class AttractorEngine {
       referenceDepth: framingDistance,
     });
     this.accumulate.run(this.history, this.splatTarget, smoothing(dt, TRAIL_SECONDS));
-    this.bloom.run(this.history.read, EXPOSURE);
-    this.composite.run(this.history.read, this.bloom.output, EXPOSURE);
+    this.bloom.downsample(this.history.read, exposure);
+    this.meter.measure(this.bloom.level(METER_LEVEL));
+    this.bloom.upsample();
+    this.composite.run(this.history.read, this.bloom.output, exposure);
     this.reportStats(dt);
   }
 
@@ -150,8 +155,14 @@ export class AttractorEngine {
       this.history.dispose();
       this.splatTarget = this.createSplatTarget();
       this.history = this.createHistory();
-      this.bloom.resize(...this.screenSize());
+      this.resizeBloom();
     }
+  }
+
+  private resizeBloom(): void {
+    this.bloom.resize(...this.screenSize());
+    const level = this.bloom.level(METER_LEVEL);
+    this.meter.resize(level.width, level.height);
   }
 
   private createSplatTarget(): RenderTarget {
