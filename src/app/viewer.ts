@@ -60,7 +60,9 @@ import { GlCaps } from '../engine/gl/context';
       background: rgb(12 16 15 / 0.8);
       border: 1px solid var(--line);
       border-radius: 8px;
-      font: 14px/1.4 ui-monospace, monospace;
+      font:
+        14px/1.4 ui-monospace,
+        monospace;
     }
     dt {
       color: var(--muted);
