@@ -7,7 +7,7 @@ uniform uint uDrawIndex;
 
 out vec4 outState;
 
-const float ESCAPE_LIMIT = 50.0;
+const float ESCAPE_LIMIT = 10.0;
 const float JITTER = 1e-3;
 
 void main() {
