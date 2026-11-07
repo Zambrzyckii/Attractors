@@ -1,7 +1,8 @@
 import { FrameClock, smoothing } from './frame-clock';
 import { createGlContext, GlCaps } from './gl/context';
-import { RenderTarget } from './gl/target';
+import { PingPong } from './gl/ping-pong';
 import { SeedPass } from './passes/seed';
+import { SimulatePass } from './passes/simulate';
 import { SplatPass } from './passes/splat';
 
 export interface EngineStats {
@@ -12,6 +13,8 @@ const STATS_INTERVAL_SECONDS = 0.25;
 const STATE_SIZE = 1024;
 const LORENZ_CENTER: [number, number, number] = [0, 0, 24.8];
 const LORENZ_HALF_EXTENT = 25.9;
+const LORENZ_TIME_SCALE = 0.72;
+const LORENZ_MAX_STEP = 0.004;
 const INITIAL_YAW = 0.4;
 const YAW_SPEED = 0.2;
 
@@ -19,8 +22,9 @@ export class AttractorEngine {
   readonly caps: GlCaps;
   private readonly gl: WebGL2RenderingContext;
   private readonly clock = new FrameClock();
-  private readonly state: RenderTarget;
+  private readonly state: PingPong;
   private readonly seed: SeedPass;
+  private readonly simulate: SimulatePass;
   private readonly splat: SplatPass;
   private readonly resizeObserver: ResizeObserver;
   private pendingSize: [number, number] | null = null;
@@ -33,9 +37,10 @@ export class AttractorEngine {
     const { gl, caps } = createGlContext(canvas);
     this.gl = gl;
     this.caps = caps;
-    this.state = new RenderTarget(gl, STATE_SIZE, STATE_SIZE, 'rgba32f');
+    this.state = new PingPong(gl, STATE_SIZE, STATE_SIZE, 'rgba32f');
     this.seed = new SeedPass(gl);
-    this.seed.run(this.state, LORENZ_CENTER, LORENZ_HALF_EXTENT / 2);
+    this.seed.run(this.state.read, LORENZ_CENTER, LORENZ_HALF_EXTENT / 2);
+    this.simulate = new SimulatePass(gl);
     this.splat = new SplatPass(gl);
     this.resizeObserver = new ResizeObserver(([entry]) => {
       const ratio = window.devicePixelRatio;
@@ -64,7 +69,8 @@ export class AttractorEngine {
   private frame(dt: number): void {
     this.applyPendingSize();
     this.yaw += dt * YAW_SPEED;
-    this.splat.run(this.state, {
+    this.simulate.run(this.state, dt * LORENZ_TIME_SCALE, LORENZ_MAX_STEP);
+    this.splat.run(this.state.read, {
       center: LORENZ_CENTER,
       halfExtent: LORENZ_HALF_EXTENT,
       yaw: this.yaw,
