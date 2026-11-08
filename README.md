@@ -20,7 +20,7 @@ npm install
 npm start
 ```
 
-Then open http://localhost:4200/. Needs Node.js 22.22.3+, 24.15+ or 26+ and a browser with WebGL2.
+Then open http://localhost:4200/ in a browser with WebGL2 and the `EXT_color_buffer_float` extension. Node.js has to be 22.22.3 or a later 22.x, 24.15 or a later 24.x, or 26 and newer.
 
 <br>
 
