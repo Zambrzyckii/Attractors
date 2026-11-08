@@ -1,5 +1,6 @@
 import { Component, computed, DestroyRef, ElementRef, inject, signal } from '@angular/core';
 import { LYAPUNOV_HISTORY_SAMPLES } from '../engine/lyapunov-estimate';
+import { groupDigits } from './format';
 import { buildSparkline } from './sparkline';
 import { ViewerStore } from './viewer-store';
 
@@ -120,8 +121,4 @@ export class Seismograph {
     observer.observe(host);
     inject(DestroyRef).onDestroy(() => observer.disconnect());
   }
-}
-
-function groupDigits(value: number): string {
-  return Math.round(value).toLocaleString('en-US').replaceAll(',', ' ');
 }

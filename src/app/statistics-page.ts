@@ -1,12 +1,14 @@
 import { Component, computed, inject } from '@angular/core';
 import { findAttractor } from '../engine/attractors/registry';
 import { LyapunovPanel } from './lyapunov-panel';
+import { EngineHost } from './engine-host';
 import { formatValue } from './param-scale';
+import { StatLists } from './stat-lists';
 import { ViewerStore } from './viewer-store';
 
 @Component({
   selector: 'app-statistics-page',
-  imports: [LyapunovPanel],
+  imports: [LyapunovPanel, StatLists],
   template: `
     <section aria-label="Statistics">
       <h1>
@@ -18,6 +20,7 @@ import { ViewerStore } from './viewer-store';
         </small>
       </h1>
       <app-lyapunov-panel />
+      <app-stat-lists (run)="host.runBenchmark()" />
     </section>
   `,
   styles: `
@@ -26,11 +29,14 @@ import { ViewerStore } from './viewer-store';
       top: 70px;
       bottom: 24px;
       left: 30px;
-      width: 470px;
+      width: 482px;
       display: grid;
       align-content: start;
       gap: 18px;
       overflow-y: auto;
+      scrollbar-color: var(--dim) transparent;
+      scrollbar-gutter: stable;
+      scrollbar-width: thin;
     }
     h1 {
       margin: 0;
@@ -52,6 +58,7 @@ import { ViewerStore } from './viewer-store';
 })
 export class StatisticsPage {
   private readonly store = inject(ViewerStore);
+  protected readonly host = inject(EngineHost);
   protected readonly preset = computed(() => findAttractor(this.store.attractorId()));
   protected readonly params = computed(() =>
     this.preset().params.map((param, index) => ({
