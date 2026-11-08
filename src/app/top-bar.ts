@@ -73,6 +73,7 @@ export class TopBar {
   private readonly router = inject(Router);
 
   protected openSelect(): void {
+    this.store.phase.set('select');
     void this.router.navigate(['/']);
   }
 }

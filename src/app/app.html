@@ -4,6 +4,9 @@
     <p class="error">{{ message }}</p>
   }
 }
+@if (store.phase() === 'select') {
+  <app-system-ring />
+}
 @if (store.phase() === 'view') {
   @if (!store.uiHidden() || onStatistics()) {
     <app-top-bar />

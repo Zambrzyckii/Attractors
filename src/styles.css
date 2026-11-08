@@ -68,6 +68,12 @@
   --mono: 'Spline Sans Mono', ui-monospace, monospace;
 }
 
+@property --a {
+  syntax: '<angle>';
+  inherits: false;
+  initial-value: 0deg;
+}
+
 html,
 body {
   margin: 0;

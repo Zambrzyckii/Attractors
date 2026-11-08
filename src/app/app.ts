@@ -12,12 +12,13 @@ import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
 import { filter, map } from 'rxjs';
 import { EngineHost } from './engine-host';
 import { Shortcuts } from './shortcuts';
+import { SystemRing } from './system-ring';
 import { TopBar } from './top-bar';
 import { ViewerStore } from './viewer-store';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, TopBar],
+  imports: [RouterOutlet, SystemRing, TopBar],
   templateUrl: './app.html',
   styleUrl: './app.css',
   host: { '(window:keydown)': 'shortcuts.handle($event)' },

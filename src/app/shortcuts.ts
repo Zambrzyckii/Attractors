@@ -13,6 +13,9 @@ export class Shortcuts {
     if (event.repeat || event.ctrlKey || event.metaKey || event.altKey) {
       return;
     }
+    if (this.store.phase() === 'select' && event.code !== 'KeyF') {
+      return;
+    }
     const idle = !this.store.benchmarkRunning();
     switch (event.code) {
       case 'KeyB':

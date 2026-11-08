@@ -32,7 +32,9 @@ export class ViewerStore {
 }
 
 function initialPhase(): Phase {
-  return 'view';
+  const { pathname, search } = window.location;
+  const skip = new URLSearchParams(search).get('start') === 'skip';
+  return skip || pathname.startsWith('/statistics') ? 'view' : 'select';
 }
 
 function requestedQuality(): string | null {
