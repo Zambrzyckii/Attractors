@@ -1,8 +1,10 @@
 uniform sampler2D uSource;
+uniform sampler2D uSourceShadow;
 uniform float uSpread;
 uniform bool uAroundZ;
 
-out vec4 outState;
+layout(location = 0) out vec4 outState;
+layout(location = 1) out vec4 outShadow;
 
 void main() {
   uvec2 texel = uvec2(gl_FragCoord.xy);
@@ -14,4 +16,5 @@ void main() {
     position.xy = mat2(cos(angle), sin(angle), -sin(angle), cos(angle)) * position.xy;
   }
   outState = vec4(position, 0.0);
+  outShadow = texelFetch(uSourceShadow, ivec2(donor), 0);
 }

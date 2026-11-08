@@ -14,6 +14,7 @@ export class SeedPass {
     this.program = new Program(gl, { fullscreenVert }, { common, seedFrag });
     this.program.use();
     gl.uniform1i(this.program.location('uSource'), 0);
+    gl.uniform1i(this.program.location('uSourceShadow'), 1);
   }
 
   run(target: RenderTarget, anchor: RenderTarget, preset: AttractorPreset): void {
@@ -34,6 +35,7 @@ export class SeedPass {
     gl.disable(gl.BLEND);
     this.program.use();
     source.bindTexture(0);
+    source.bindTexture(1, 1);
     gl.uniform1f(this.program.location('uSpread'), spread);
     gl.uniform1i(this.program.location('uAroundZ'), aroundZ ? 1 : 0);
     gl.drawArrays(gl.TRIANGLES, 0, 3);

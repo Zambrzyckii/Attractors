@@ -37,7 +37,9 @@ export class SimulatePass {
     gl.disable(gl.BLEND);
     program.use();
     state.read.bindTexture(0);
+    state.read.bindTexture(1, 1);
     gl.uniform1i(program.location('uState'), 0);
+    gl.uniform1i(program.location('uShadow'), 1);
     gl.uniform1i(program.location('uSteps'), steps);
     gl.uniform1f(program.location('uStep'), step);
     gl.uniform3f(program.location('uCenter'), ...attractor.center);
@@ -45,6 +47,7 @@ export class SimulatePass {
     gl.uniform4fv(program.location('uParams'), attractor.params);
     const noise = NOISE_FLOOR * attractor.halfExtent * Math.sqrt(12 * steps * step);
     gl.uniform1f(program.location('uNoise'), noise);
+    gl.uniform1f(program.location('uShadowDistance'), attractor.shadowDistance);
     gl.uniform1ui(program.location('uDrawIndex'), this.drawIndex++);
     gl.drawArrays(gl.TRIANGLES, 0, 3);
     state.swap();

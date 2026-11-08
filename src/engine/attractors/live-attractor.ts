@@ -8,6 +8,7 @@ const FRAMING_SECONDS = 4;
 const MIN_SPREAD = 0.25;
 const MIN_SPEED = 0.25;
 const GLIDE_SECONDS = 2;
+const SHADOW_DISTANCE = 1e-3;
 
 export class LiveAttractor {
   readonly params = new Float32Array(PARAM_SLOTS);
@@ -42,6 +43,10 @@ export class LiveAttractor {
 
   get typicalSpeed(): number {
     return this.preset.typicalSpeed * this.speedScale;
+  }
+
+  get shadowDistance(): number {
+    return SHADOW_DISTANCE * this.preset.halfExtent;
   }
 
   setParam(name: string, value: number): void {

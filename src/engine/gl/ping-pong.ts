@@ -3,10 +3,16 @@ import { RenderTarget, TargetFormat } from './target';
 export class PingPong {
   private targets: [RenderTarget, RenderTarget];
 
-  constructor(gl: WebGL2RenderingContext, width: number, height: number, format: TargetFormat) {
+  constructor(
+    gl: WebGL2RenderingContext,
+    width: number,
+    height: number,
+    format: TargetFormat,
+    attachments = 1,
+  ) {
     this.targets = [
-      new RenderTarget(gl, width, height, format),
-      new RenderTarget(gl, width, height, format),
+      new RenderTarget(gl, width, height, format, attachments),
+      new RenderTarget(gl, width, height, format, attachments),
     ];
   }
 

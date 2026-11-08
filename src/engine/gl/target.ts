@@ -48,9 +48,9 @@ export class RenderTarget {
     this.gl.viewport(0, 0, this.width, this.height);
   }
 
-  clear(color: [number, number, number, number]): void {
+  clear(color: [number, number, number, number], attachment = 0): void {
     this.bind();
-    this.gl.clearBufferfv(this.gl.COLOR, 0, color);
+    this.gl.clearBufferfv(this.gl.COLOR, attachment, color);
   }
 
   bindTexture(unit: number, attachment = 0): void {

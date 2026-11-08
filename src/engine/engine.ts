@@ -44,6 +44,7 @@ interface PipelineStep {
 
 const STATS_INTERVAL_SECONDS = 0.25;
 const ANCHOR_WARMUP_STEPS = 3000;
+const STATE_ATTACHMENTS = 2;
 const INITIAL_AZIMUTH = 0.4 - Math.PI / 2;
 const ELEVATION = -0.38;
 const CAMERA_DISTANCE = 3.4;
@@ -93,7 +94,7 @@ export class AttractorEngine {
     this.caps = caps;
     this.quality = findQuality(qualityId);
     this.state = this.createState(this.quality);
-    this.anchor = new PingPong(gl, 1, 1, 'rgba32f');
+    this.anchor = new PingPong(gl, 1, 1, 'rgba32f', STATE_ATTACHMENTS);
     this.seed = new SeedPass(gl);
     this.programs = new PresetPrograms(gl);
     this.simulate = new SimulatePass(gl, this.programs);
@@ -202,6 +203,7 @@ export class AttractorEngine {
 
   private reseed(): void {
     this.anchor.read.clear([...this.preset.start, 0]);
+    this.anchor.read.clear([this.attractor.shadowDistance, 0, 0, 0], 1);
     this.simulate.runSteps(this.anchor, this.attractor, ANCHOR_WARMUP_STEPS);
     this.seed.run(this.state.read, this.anchor.read, this.preset);
   }
@@ -318,7 +320,7 @@ export class AttractorEngine {
   }
 
   private createState(quality: QualityPreset): PingPong {
-    return new PingPong(this.gl, quality.width, quality.height, 'rgba32f');
+    return new PingPong(this.gl, quality.width, quality.height, 'rgba32f', STATE_ATTACHMENTS);
   }
 
   private createHistory(): PingPong {
