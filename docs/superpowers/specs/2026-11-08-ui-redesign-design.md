@@ -6,8 +6,9 @@ Design for branch `ui-redesign`, agreed with the owner on 2026-11-08. The chosen
 ## Intent
 
 The viewer works, but its controls look like default browser widgets. The panels are dark boxes, the sliders are native
-`<input type="range">` with `accent-color` (`src/app/param-slider.ts:59-63`), and the text uses `ui-monospace` and
-`system-ui` (`src/styles.css:16`). The owner wants three things. First, a visual identity of its own, built from the
+`<input type="range">` with `accent-color` (`src/app/param-slider.ts:59-63`), and the text uses `system-ui`
+(`src/styles.css:16`) and `ui-monospace` inside the components (`src/app/control-panel.ts:90`, `src/app/hud.ts:95`,
+`src/app/viewer.ts:55`). The owner wants three things. First, a visual identity of its own, built from the
 subject. Second, a start sequence that introduces the four systems before the viewer opens. Third, a separate page with
 deeper live statistics about the figure. A pixel art favicon completes it.
 
@@ -37,16 +38,21 @@ These would make the work a failure even if it runs.
 
 - `src/engine` never imports Angular (`README.md:74`). Engine additions stay plain TypeScript and WebGL2 and are reached
   through the `AttractorEngine` facade.
-- Components are standalone with inline `template` and `styles` (`src/app/control-panel.ts:7-125`). App state lives in
-  signals in the root `ViewerStore` (`src/app/viewer-store.ts:6-29`). New code follows both patterns.
+- Feature components are standalone with inline `template` and `styles` (`src/app/control-panel.ts:7-125`). The root
+  `App` is the exception and uses `templateUrl` and `styleUrl` (`src/app/app.ts:7-8`), which it keeps as the shell. App
+  state lives in signals in the root `ViewerStore` (`src/app/viewer-store.ts:6-29`). New code follows these patterns.
 - Any change of the canvas size disposes and recreates the long exposure history (`src/engine/engine.ts:319-327`). The UI
   must never animate or change the size of the main canvas box.
 - `Viewer` disposes the engine when it is destroyed (`src/app/viewer.ts:83`). After this redesign the engine must outlive
   route changes.
 - One engine renders one attractor (`src/engine/engine.ts:65`). `setAttractor` restarts the Lyapunov estimate and
   reseeds every particle (`src/engine/engine.ts:155-164`).
-- Keys are ignored while Ctrl, Alt or Meta is held (`src/app/viewer.ts:96`). R and N do nothing while the benchmark runs
-  (`src/app/viewer.ts:99-116`). Both rules stay.
+- Global shortcuts ignore auto-repeated key events and keys pressed while Ctrl, Alt or Meta is held
+  (`src/app/viewer.ts:96`). R and N do nothing while the benchmark runs (`src/app/viewer.ts:99-116`). Both rules stay, so
+  holding an arrow turns the ring one step only.
+- `benchmark()` swaps the particle state across `await`s (`src/engine/engine.ts:186-199`). Calling `setAttractor` or
+  `setQuality` during a run corrupts it. Today every system, quality and colour button is disabled while it runs
+  (`src/app/control-panel.ts:34`, `:46`, `:58`).
 
 ## Visual system
 
@@ -111,8 +117,11 @@ Mockup `intro-v2.html`, variant 3.
   shader compilation are done before the first key press.
 - Five WebGL contexts exist at once during Start. The four small engines call `dispose()` after the transition, which
   also loses their contexts (`src/engine/engine.ts:201-206`).
-- If WebGL2 is missing, the start screen still shows the title, names and prompt, and the existing error message
-  appears as today (`src/app/viewer.ts:124-126`).
+- If WebGL2 is missing or the main engine fails, the app stays on Start. The prompt is replaced by the error message
+  from `src/app/viewer.ts:124-126` in `--warn`, centred under the title, and keys do nothing. The old top left error box
+  (`src/app/viewer.ts:48-57`) goes away because the mark now sits there.
+- The URL parameter `?start=skip` skips Start and Select and opens the viewer with the first system, for automated
+  screenshots and benchmarks like the ones in `README.md:107`. It combines with `?quality=` (designer's call).
 
 ### Zoom transition
 
@@ -137,7 +146,7 @@ Mockup `selection.html`, variant 2.
 - Focusing a name with Tab turns the ring to it (designer's call).
 - The background always shows the front system. `setAttractor` runs only after the ring has rested for about 300 ms, so
   fast browsing does not reseed the particles at every step.
-- A hint at the bottom in Spline Sans Mono 13px `--dim` reads "← → turn · Enter open" with the keys drawn as small
+- A hint at the bottom in Spline Sans Mono 13px `--dim` reads `← → turn · Enter open` with the keys drawn as small
   outlined caps.
 - Opening a system fades and spreads the ring names, then the viewer UI appears in a short stagger of about 600 ms. A
   plain crossfade is acceptable if the stagger turns out fragile.
@@ -156,7 +165,7 @@ Top area.
   Clicking one switches the system directly.
 - On the right under the navigation, two lines of text buttons. "speed / lyapunov" and "low / medium / high / ultra",
   Spline Sans Mono 14px. The active option is `--ink`, the others `--dim`, the slashes are plain text. They are
-  `<button>` elements with `aria-pressed`, as today (`src/app/control-panel.ts:32-39`).
+  `<button>` elements with `aria-pressed`, as today (`src/app/control-panel.ts:42-65`).
 
 Parameter line, bottom left.
 
@@ -173,13 +182,16 @@ Parameter line, bottom left.
   Newsreader italic 12px. When another parameter differs from its default the marks dim to 35%, keeping today's meaning
   (`src/app/control-panel.ts:136-141`, `src/app/param-slider.ts:84-86`).
 - The value mapping and the snap to the default within 10 of 1000 positions are reused from `ParamSlider`
-  (`src/app/param-slider.ts:4-5`, `:110-136`). The full range spans about 1100px of scale.
+  (`src/app/param-slider.ts:4-5`, `:110-136`). The snap applies to dragging only. With keys it would pull a chip that
+  sits at its default straight back on every step of 1 or 10. The full range spans about 1100px of scale.
 - Keyboard. Each chip is focusable with `role="slider"`, `aria-valuemin`, `aria-valuemax`, `aria-valuenow` and
   `aria-valuetext`. Focus opens the rule. Left and Right move by one position of 1000, Shift moves by 10, Page Up and
   Page Down by 100, Home and End jump to the ends. Escape closes the rule.
 - Double click on a chip resets that parameter to its default. R still resets all of them. The Reset button
   (`src/app/control-panel.ts:21-28`) goes away.
-- All chips are disabled while the benchmark runs, as the sliders are today (`src/app/control-panel.ts:16`).
+- While the benchmark runs, everything that changes the engine state is disabled, as today (`src/app/control-panel.ts:16`,
+  `:34`, `:46`, `:58`). That covers the chips, the system names, the colour and quality buttons, and the "Attractors"
+  mark, so Select cannot be reached. The top navigation stays usable (designer's call).
 
 Seismograph, bottom edge.
 
@@ -218,9 +230,12 @@ Mockup `statistics.html`, variant 1, with the FTLE histogram from variant 2.
      lists mean speed, current time step, substeps per frame and a state of measuring, gliding or settled. Rendering
      lists frame rate, particles and exposure as both factor and EV, as today (`src/app/hud.ts:21-25`). Device lists
      renderer, max texture size, float blending, quality and a "Run" button for the benchmark.
-  6. After a benchmark run, the result table under the lists. Quality, particles, frame time and one column per pass
-     from `report.passes`, with the row of the current quality in `--gold` and the note "GPU ms per frame, interval
-     X ms" as today (`src/app/hud.ts:56`).
+  6. A fifth list, Keys, with every shortcut from the Keyboard section, replacing the key line in `src/app/hud.ts:50`
+     (designer's call).
+  7. After a benchmark run, the result table under the lists, transposed to fit the column. One column per quality,
+     with the current one in `--gold`. One row for particles, one for the frame time and one per pass from
+     `report.passes`. Above it the note "GPU ms per frame, interval X ms" as today (`src/app/hud.ts:56`). Eleven columns
+     of the current layout would not fit 470px at 13px (designer's call).
 - N, R and B keep working here. Going back to Viewer moves the canvas back with the same transition.
 
 ### Favicon
@@ -234,7 +249,7 @@ Mockup `favicon.html`, card "Lorenz, speed colours, tuned".
   starts at teal because the navy stop is invisible on the dark tile at 16px.
 - The tile is `#0b0d0c` with its four corner pixels transparent. Padding is 2px at 16px and 4px at 32px.
 - A small Node script in `scripts/` generates the files without new packages. It writes `public/favicon.svg` from the
-  16px grid as crisp rectangles and `public/favicon.png` at 32px through `node:zlib`. `src/index.html:7` links both and
+  16px grid as crisp rectangles and `public/favicon.png` at 32px through `node:zlib`. `src/index.html:8` links both and
   `public/favicon.ico` is removed (designer's call).
 
 ## Keyboard
@@ -283,10 +298,13 @@ facade.
    `src/engine/passes/simulate.ts:19-24`, and `gliding` from `src/engine/attractors/live-attractor.ts:52-54`.
 3. **FTLE histogram pass.** Each particle's finite-time exponent is the `w` component of the state texture
    (`src/engine/shaders/simulate.frag.glsl:30`, `:42`). A new pass bins it into 48 buckets over the preset's
-   `ftleRange` about once per second and reads the result back asynchronously like the stats pass
-   (`src/engine/gl/readback.ts`). It must work without `EXT_float_blend`, as `SplatPass` does
-   (`src/engine/passes/splat.ts:111`), for example by gathering over a subsample of particles. Reported as an optional
-   field in `EngineStats` with the range, the counts and the mean.
+   `ftleRange` about once per second and reads the result back asynchronously. `Readback` reads a single RGBA32F pixel
+   today (`src/engine/gl/readback.ts:13`, `:33`), so it has to learn to read a small block of texels, at least 12 for
+   48 bins, without changing what `StatsPass` gets from it (`src/engine/passes/stats.ts:42-43`). The pass must work
+   without `EXT_float_blend`, as `SplatPass` does (`src/engine/passes/splat.ts:111`), for example by gathering over a
+   subsample of particles. It runs outside the benchmark pipeline (`src/engine/engine.ts:240-268`), always on, so
+   `report.passes` and the README pass tables keep their columns. The result is an optional field in `EngineStats` with
+   the range, the counts and the mean (designer's call).
 4. **Device facts.** `engine.caps` already holds renderer, max texture size and extensions
    (`src/engine/gl/context.ts:1-8`). No engine change is needed, only exposure to the statistics page.
 
@@ -315,16 +333,18 @@ dozen lines of logic, as the owner works through them one file at a time.
 
 1. Tokens, fonts and the favicon.
 2. Viewer restyle inside today's `Viewer`. Top area, text buttons, chips with the slide rule, the seismograph. Remove
-   `ControlPanel`, `Hud` and `ParamSlider`.
+   `ControlPanel` and `ParamSlider`. `Hud` stays unchanged until phase 4, so the benchmark, renderer and exposure stay
+   reachable on the branch.
 3. Shell and router. Move the engine into the shell, add the top bar and the `/statistics` route with the data that
    exists today, add the canvas move.
-4. Engine change 2 and the Statistics lists and benchmark table.
+4. Engine change 2, the Statistics lists, keys and benchmark table. Remove `Hud`.
 5. Engine change 3 and the histogram.
 6. The Select ring and the phase signal.
 7. The Start screen, engine change 1 and the zoom transition.
 8. The responsive pass and the README update. The Controls table (`README.md:42-56`) gains the new screens, double
-   click reset and the ring keys, and the sentence about the heads-up display (`README.md:24`) changes to the
-   seismograph and the Statistics page.
+   click reset, the ring keys and `?start=skip`. The heads-up display mentioned in `README.md:24` and `README.md:84`
+   becomes the seismograph and the Statistics page, and the Benchmark button in `README.md:103` becomes the Run button
+   on Statistics.
 
 ## Decided by the owner
 
@@ -346,6 +366,12 @@ The owner should check these while reading.
 - The figure on Statistics moves by CSS transform, not by a camera offset.
 - The favicon ships as SVG plus a 32px PNG, and `favicon.ico` goes away.
 - On Start, every key begins, and F also toggles fullscreen.
+- Without WebGL2 the app stays on Start and shows the error under the title.
+- `?start=skip` skips Start and Select.
+- During a benchmark the top navigation stays usable and everything that changes the engine state is disabled.
+- Statistics gets a Keys list, and its benchmark table is transposed.
+- The histogram pass runs outside the benchmark pipeline and is always on.
+- `Hud` stays until phase 4.
 - Every responsive rule above.
 
 ## Left to the builder
@@ -356,6 +382,11 @@ The owner should check these while reading.
 
 ## Open questions
 
-1. How the two fonts load. A `<link>` to Google Fonts in `src/index.html` is the simplest but makes a request to a
+1. How the bifurcation marks work on the slide rule. Today each mark is a button that sets its exact value and is
+   reachable by keyboard (`src/app/param-slider.ts:34-47`). A rule that closes on release leaves the triangles passive,
+   and 1000 log positions cannot land exactly on 13.93 or 24.06. The titles also collide, because 24.06 and 24.74 sit
+   about 5px apart and the titles are long (`src/engine/attractors/lorenz.ts:16-20`).
+2. Whether the favicon is the second card, "Lorenz, speed colours", in its tuned form.
+3. How the two fonts load. A `<link>` to Google Fonts in `src/index.html` is the simplest but makes a request to a
    third party on every visit and needs a network connection during development. Self-hosting the `woff2` files in
    `public/fonts` adds about 200 KB of assets and no npm package. Both fonts are under the SIL Open Font License.
