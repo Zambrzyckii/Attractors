@@ -30,9 +30,11 @@ const VALUE_DROP = 4;
             [attr.y2]="line.zero"
           />
           <polyline [attr.points]="line.points" />
-          <text class="value" [attr.x]="plotWidth + valueGap" [attr.y]="line.head.y + valueDrop">
-            {{ latest() }}
-          </text>
+          @if (estimate() !== null) {
+            <text class="value" [attr.x]="plotWidth + valueGap" [attr.y]="line.head.y + valueDrop">
+              {{ readout() }}
+            </text>
+          }
         </g>
       }
       <text x="0" [attr.y]="height - 2">60 s ago</text>
@@ -98,7 +100,6 @@ export class LyapunovPanel {
   private readonly history = computed(() => this.store.stats()?.lyapunov.history ?? []);
   protected readonly estimate = computed(() => this.store.stats()?.lyapunov.estimate ?? null);
   protected readonly readout = computed(() => this.estimate()?.toFixed(3) ?? 'measuring');
-  protected readonly latest = computed(() => this.history().at(-1)?.toFixed(3) ?? '');
   protected readonly line = computed(() =>
     buildSparkline(this.history(), LYAPUNOV_HISTORY_SAMPLES, PLOT_WIDTH, PLOT_HEIGHT, PADDING),
   );
