@@ -10,9 +10,13 @@ interface Pending {
 export class Readback {
   private readonly free: WebGLBuffer[] = [];
   private readonly pending: Pending[] = [];
-  private readonly result = new Float32Array(4);
+  private readonly result: Float32Array;
 
-  constructor(private readonly gl: WebGL2RenderingContext) {
+  constructor(
+    private readonly gl: WebGL2RenderingContext,
+    private readonly texels = 1,
+  ) {
+    this.result = new Float32Array(4 * texels);
     for (let index = 0; index < SLOTS; index++) {
       const buffer = gl.createBuffer();
       gl.bindBuffer(gl.PIXEL_PACK_BUFFER, buffer);
@@ -30,7 +34,7 @@ export class Readback {
     }
     target.bind();
     gl.bindBuffer(gl.PIXEL_PACK_BUFFER, buffer);
-    gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.FLOAT, 0);
+    gl.readPixels(0, 0, this.texels, 1, gl.RGBA, gl.FLOAT, 0);
     gl.bindBuffer(gl.PIXEL_PACK_BUFFER, null);
     const fence = gl.fenceSync(gl.SYNC_GPU_COMMANDS_COMPLETE, 0);
     if (!fence) {
