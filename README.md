@@ -72,7 +72,8 @@ the other holds the shadow offset used to measure it. Every frame runs these pas
 | Composite  | Mixes the bloom into the history, applies the exposure, then AgX tone mapping and dithering.                                                                                                                                                                  |
 
 The `src/engine` folder is plain TypeScript and WebGL2 and never imports Angular. `src/app` holds the Angular
-components and a signal store, and talks to the engine only through the `AttractorEngine` facade.
+components and a signal store. It drives the engine through the `AttractorEngine` facade and reads the preset and
+quality definitions from the engine modules.
 
 ## Lyapunov exponent
 
