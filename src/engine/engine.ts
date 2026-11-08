@@ -16,7 +16,7 @@ import { PresetPrograms } from './passes/preset-programs';
 import { SeedPass } from './passes/seed';
 import { SimulatePass } from './passes/simulate';
 import { SplatPass, SplatView } from './passes/splat';
-import { StatsPass } from './passes/stats';
+import { ParticleStats, StatsPass } from './passes/stats';
 import { ColorMode, findQuality, QUALITIES, QualityPreset } from './settings';
 
 export interface EngineStats {
@@ -24,6 +24,10 @@ export interface EngineStats {
   particles: number;
   exposure: number;
   lyapunov: LyapunovReading;
+  cloud: ParticleStats | null;
+  timeStep: number;
+  substeps: number;
+  gliding: boolean;
 }
 
 export interface BenchmarkRow {
@@ -88,6 +92,7 @@ export class AttractorEngine {
   private statsListener: ((stats: EngineStats) => void) | null = null;
   private frameSeconds = 1 / 60;
   private sinceStats = 0;
+  private cloud: ParticleStats | null = null;
 
   constructor(
     private readonly canvas: HTMLCanvasElement,
@@ -159,6 +164,7 @@ export class AttractorEngine {
     }
     this.attractor = new LiveAttractor(preset);
     this.stats.invalidate();
+    this.cloud = null;
     this.lyapunov.restart();
     this.reseed();
   }
@@ -223,6 +229,7 @@ export class AttractorEngine {
     const exposure = this.meter.update(dt);
     const particleStats = this.stats.poll();
     if (particleStats) {
+      this.cloud = particleStats;
       this.lyapunov.observe(particleStats.meanFtle);
     }
     this.attractor.follow(particleStats, dt);
@@ -359,6 +366,10 @@ export class AttractorEngine {
         particles: this.quality.width * this.quality.height,
         exposure,
         lyapunov,
+        cloud: this.cloud,
+        timeStep: this.simulate.step,
+        substeps: this.simulate.substeps,
+        gliding: this.attractor.gliding,
       });
     }
   }

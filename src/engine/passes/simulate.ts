@@ -9,19 +9,31 @@ const FTLE_SECONDS = 1;
 
 export class SimulatePass {
   private drawIndex = 0;
+  private lastSubsteps = 0;
+  private lastStep = 0;
 
   constructor(
     private readonly gl: WebGL2RenderingContext,
     private readonly programs: PresetPrograms,
   ) {}
 
+  get substeps(): number {
+    return this.lastSubsteps;
+  }
+
+  get step(): number {
+    return this.lastStep;
+  }
+
   run(state: PingPong, attractor: LiveAttractor, simDelta: number): void {
     const { maxStep } = attractor;
     const steps = Math.min(MAX_STEPS_PER_DRAW, Math.ceil(simDelta / maxStep));
+    this.lastSubsteps = steps;
     if (steps === 0) {
       return;
     }
-    this.draw(state, attractor, steps, Math.min(maxStep, simDelta / steps));
+    this.lastStep = Math.min(maxStep, simDelta / steps);
+    this.draw(state, attractor, steps, this.lastStep);
   }
 
   runSteps(state: PingPong, attractor: LiveAttractor, count: number): void {
