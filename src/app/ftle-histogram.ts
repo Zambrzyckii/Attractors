@@ -8,6 +8,7 @@ const HEIGHT = 92;
 const BASE = HEIGHT - 16;
 const BAR_SPACE = HEIGHT - 22;
 const LABEL_Y = HEIGHT - 2;
+const BREAK_Y = BASE - BAR_SPACE + 8;
 const TICK_COUNT = 5;
 const EDGE = 12;
 const MEAN_LABEL_SPACE = 84;
@@ -23,11 +24,21 @@ type Anchor = 'start' | 'middle' | 'end';
         @for (bar of chart().bars; track $index) {
           <rect
             [class.chaos]="bar.chaos"
+            [class.overflow]="bar.overflow"
             [attr.x]="bar.x"
             [attr.y]="bar.y"
             [attr.width]="bar.width"
             [attr.height]="bar.height"
           />
+          @if (bar.overflow) {
+            <line
+              class="break"
+              [attr.x1]="bar.x"
+              [attr.x2]="bar.x + bar.width"
+              [attr.y1]="breakY"
+              [attr.y2]="breakY"
+            />
+          }
         }
         @if (chart().zero; as zero) {
           <line class="zero" [attr.x1]="zero" [attr.x2]="zero" y1="0" [attr.y2]="base" />
@@ -62,6 +73,10 @@ type Anchor = 'start' | 'middle' | 'end';
     rect.chaos {
       fill: var(--chaos);
     }
+    .break {
+      stroke: var(--bg);
+      stroke-width: 2;
+    }
     .zero {
       stroke: var(--hair);
     }
@@ -90,17 +105,25 @@ export class FtleHistogramChart {
   protected readonly height = HEIGHT;
   protected readonly base = BASE;
   protected readonly labelY = LABEL_Y;
+  protected readonly breakY = BREAK_Y;
   protected readonly chart = computed(() => {
     const { range, counts, mean } = this.histogram();
     const width = this.width();
     const [min, max] = range;
     const x = (value: number) => ((value - min) / (max - min)) * width;
     const binWidth = width / counts.length;
-    const tallest = Math.max(...counts) || 1;
+    const tallest = Math.max(...counts.slice(1, -1)) || 1;
     const bars = counts.map((count, index) => {
-      const height = (count / tallest) * BAR_SPACE;
+      const height = Math.min(count / tallest, 1) * BAR_SPACE;
       const centre = min + (index + 0.5) * ((max - min) / counts.length);
-      return { x: index * binWidth + 0.5, y: BASE - height, width: binWidth - 1, height, chaos: centre > 0 };
+      return {
+        x: index * binWidth + 0.5,
+        y: BASE - height,
+        width: binWidth - 1,
+        height,
+        chaos: centre > 0,
+        overflow: count > tallest,
+      };
     });
     const meanX = Math.min(Math.max(x(mean), 0), width);
     const flip = meanX > width - MEAN_LABEL_SPACE;
