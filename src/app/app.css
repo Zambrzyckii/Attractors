@@ -6,7 +6,9 @@
   display: block;
   touch-action: none;
   cursor: grab;
-  transition: transform 600ms ease;
+  transition:
+    transform 600ms ease,
+    opacity 1200ms ease;
 }
 .main.concealed {
   opacity: 0;
@@ -33,6 +35,6 @@
 }
 @media (prefers-reduced-motion: reduce) {
   .main {
-    transition: none;
+    transition: opacity 400ms ease;
   }
 }

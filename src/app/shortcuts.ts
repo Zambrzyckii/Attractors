@@ -1,6 +1,7 @@
 import { inject, Injectable } from '@angular/core';
 import { Router } from '@angular/router';
 import { EngineHost } from './engine-host';
+import { Intro } from './intro';
 import { ViewerStore } from './viewer-store';
 
 @Injectable({ providedIn: 'root' })
@@ -8,9 +9,14 @@ export class Shortcuts {
   private readonly store = inject(ViewerStore);
   private readonly host = inject(EngineHost);
   private readonly router = inject(Router);
+  private readonly intro = inject(Intro);
 
   handle(event: KeyboardEvent): void {
     if (event.repeat || event.ctrlKey || event.metaKey || event.altKey) {
+      return;
+    }
+    if (this.store.phase() === 'start') {
+      this.handleStart(event);
       return;
     }
     if (this.store.phase() === 'select' && event.code !== 'KeyF') {
@@ -39,6 +45,16 @@ export class Shortcuts {
       case 'KeyF':
         toggleFullscreen();
         break;
+    }
+  }
+
+  private handleStart(event: KeyboardEvent): void {
+    if (this.host.error()) {
+      return;
+    }
+    this.intro.begin();
+    if (event.code === 'KeyF') {
+      toggleFullscreen();
     }
   }
 }

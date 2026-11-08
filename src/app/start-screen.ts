@@ -21,7 +21,7 @@ const FIGURE_QUALITY = 'tiny';
   template: `
     <h1>Attractors</h1>
     @for (attractor of attractors; track attractor.id; let index = $index) {
-      <figure [style.left.%]="20 * (index + 1)">
+      <figure [style.left.%]="20 * (index + 1)" [style.--dx]="20 * (index + 1) - 50 + 'vw'">
         <canvas #figure></canvas>
         <figcaption>{{ attractor.name }}</figcaption>
       </figure>
@@ -49,11 +49,21 @@ const FIGURE_QUALITY = 'tiny';
       transform: translateY(-50%);
     }
     figure {
+      --dy: 12vh;
       position: absolute;
       top: 62%;
       width: 17vw;
       margin: 0;
       transform: translate(-50%, -50%);
+      transition: transform 1200ms cubic-bezier(0.33, 1, 0.68, 1);
+    }
+    :host(.leaving) figure {
+      transform: translate(calc(-50% + var(--dx) * 1.5), calc(-50% + var(--dy) * 1.5)) scale(2.2);
+    }
+    :host(.leaving) :is(h1, figcaption, p) {
+      opacity: 0;
+      animation: none;
+      transition: opacity 300ms ease;
     }
     canvas {
       display: block;
@@ -94,6 +104,13 @@ const FIGURE_QUALITY = 'tiny';
     @media (prefers-reduced-motion: reduce) {
       .prompt {
         animation: none;
+      }
+      :host(.leaving) {
+        opacity: 0;
+        transition: opacity 400ms ease;
+      }
+      :host(.leaving) figure {
+        transform: translate(-50%, -50%);
       }
     }
   `,
