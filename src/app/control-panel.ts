@@ -1,6 +1,5 @@
 import { Component, computed, inject } from '@angular/core';
-import { ATTRACTORS, findAttractor } from '../engine/attractors/registry';
-import { COLOR_MODES, QUALITIES } from '../engine/settings';
+import { findAttractor } from '../engine/attractors/registry';
 import { ParamSlider } from './param-slider';
 import { ViewerStore } from './viewer-store';
 
@@ -27,42 +26,6 @@ import { ViewerStore } from './viewer-store';
         Reset
       </button>
     </section>
-    <nav class="panel attractors" aria-label="Attractor">
-      @for (attractor of attractors; track attractor.id) {
-        <button
-          type="button"
-          [disabled]="store.benchmarkRunning()"
-          [attr.aria-pressed]="attractor.id === store.attractorId()"
-          (click)="store.attractorId.set(attractor.id)"
-        >
-          {{ attractor.name }}
-        </button>
-      }
-    </nav>
-    <nav class="panel quality" aria-label="Quality">
-      @for (quality of qualities; track quality.id) {
-        <button
-          type="button"
-          [disabled]="store.benchmarkRunning()"
-          [attr.aria-pressed]="quality.id === store.qualityId()"
-          (click)="store.qualityId.set(quality.id)"
-        >
-          {{ quality.name }}
-        </button>
-      }
-    </nav>
-    <nav class="panel color" aria-label="Color">
-      @for (mode of colorModes; track mode.id) {
-        <button
-          type="button"
-          [disabled]="store.benchmarkRunning()"
-          [attr.aria-pressed]="mode.id === store.colorMode()"
-          (click)="store.colorMode.set(mode.id)"
-        >
-          {{ mode.name }}
-        </button>
-      }
-    </nav>
   `,
   styles: `
     .panel {
@@ -75,12 +38,9 @@ import { ViewerStore } from './viewer-store';
       border: 1px solid var(--line);
       border-radius: 8px;
     }
-    .attractors {
-      left: 16px;
-    }
     .params {
       left: 16px;
-      bottom: 72px;
+      bottom: 16px;
       width: 320px;
       flex-direction: column;
       gap: 8px;
@@ -92,13 +52,6 @@ import { ViewerStore } from './viewer-store';
     }
     .reset {
       align-self: flex-end;
-    }
-    .quality {
-      right: 16px;
-    }
-    .color {
-      right: 16px;
-      bottom: 72px;
     }
     button {
       padding: 6px 12px;
@@ -114,20 +67,13 @@ import { ViewerStore } from './viewer-store';
     button:disabled {
       cursor: progress;
     }
-    button:hover,
-    button[aria-pressed='true'] {
+    button:hover {
       color: var(--fg);
-    }
-    button[aria-pressed='true'] {
-      border-color: var(--line);
     }
   `,
 })
 export class ControlPanel {
   protected readonly store = inject(ViewerStore);
-  protected readonly attractors = ATTRACTORS;
-  protected readonly qualities = QUALITIES;
-  protected readonly colorModes = COLOR_MODES;
   protected readonly preset = computed(() => findAttractor(this.store.attractorId()));
   protected readonly atDefaults = computed(() =>
     this.store.params().every((value, index) => value === this.preset().params[index].value),

@@ -82,8 +82,8 @@ const SPARK_PADDING = 2;
   styles: `
     .hud {
       position: fixed;
-      top: 16px;
-      left: 16px;
+      top: 140px;
+      right: 16px;
       padding: 12px 16px;
       display: grid;
       gap: 12px;

@@ -15,14 +15,16 @@ import { measureRefreshRate } from '../engine/frame-clock';
 import { defaultQualityFor } from '../engine/settings';
 import { ControlPanel } from './control-panel';
 import { Hud } from './hud';
+import { ViewerHeader } from './viewer-header';
 import { ViewerStore } from './viewer-store';
 
 @Component({
   selector: 'app-viewer',
-  imports: [ControlPanel, Hud],
+  imports: [ControlPanel, Hud, ViewerHeader],
   template: `
     <canvas #canvas></canvas>
     @if (!store.uiHidden()) {
+      <app-viewer-header />
       <app-control-panel />
       @if (renderer(); as renderer) {
         <app-hud [renderer]="renderer" (benchmark)="runBenchmark()" />
