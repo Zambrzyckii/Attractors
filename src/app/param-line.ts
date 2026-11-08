@@ -27,6 +27,7 @@ import { ViewerStore } from './viewer-store';
       display: flex;
       gap: 22px;
       align-items: baseline;
+      animation: enter 400ms ease 100ms backwards;
     }
   `,
 })

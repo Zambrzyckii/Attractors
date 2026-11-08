@@ -74,6 +74,18 @@
   initial-value: 0deg;
 }
 
+@keyframes enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  @keyframes enter {
+  }
+}
+
 html,
 body {
   margin: 0;

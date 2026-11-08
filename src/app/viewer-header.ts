@@ -73,6 +73,10 @@ import { ViewerStore } from './viewer-store';
       left: 30px;
       top: 58px;
     }
+    .system,
+    .options {
+      animation: enter 400ms ease backwards;
+    }
     h1 {
       margin: 0;
       font: italic 300 54px/1 var(--serif);

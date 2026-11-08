@@ -44,6 +44,7 @@ const TEXT_BOTTOM = 48;
       left: 0;
       height: 56px;
       pointer-events: none;
+      animation: enter 400ms ease 200ms backwards;
     }
     p {
       position: absolute;

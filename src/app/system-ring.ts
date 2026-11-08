@@ -1,17 +1,26 @@
-import { Component, computed, effect, ElementRef, inject, signal } from '@angular/core';
+import {
+  Component,
+  computed,
+  DestroyRef,
+  effect,
+  ElementRef,
+  inject,
+  signal,
+} from '@angular/core';
 import { ATTRACTORS } from '../engine/attractors/registry';
 import { ViewerStore } from './viewer-store';
 
 const COUNT = ATTRACTORS.length;
 const FRONT_ANGLE = 90;
 const SETTLE_MS = 300;
+const LEAVE_MS = 300;
 
 @Component({
   selector: 'app-system-ring',
   host: { '(document:keydown)': 'onKey($event)' },
   template: `
     <p class="mark">Attractors</p>
-    <div class="ring">
+    <div class="ring" [class.leaving]="leaving()">
       <div class="ellipse"></div>
       @for (attractor of attractors; track attractor.id; let index = $index) {
         <button
@@ -25,7 +34,7 @@ const SETTLE_MS = 300;
         </button>
       }
     </div>
-    <p class="hint">
+    <p class="hint" [class.leaving]="leaving()">
       <kbd class="kbd">←</kbd> <kbd class="kbd">→</kbd> turn · <kbd class="kbd">Enter</kbd> open
     </p>
   `,
@@ -57,9 +66,10 @@ const SETTLE_MS = 300;
     }
     button {
       --near: pow((1 + sin(var(--a))) / 2, 1.6);
+      --spread: 1;
       position: absolute;
-      top: calc(52% + sin(var(--a)) * 23vh);
-      left: calc(50% + cos(var(--a)) * 37.5vw);
+      top: calc(52% + sin(var(--a)) * 23vh * var(--spread));
+      left: calc(50% + cos(var(--a)) * 37.5vw * var(--spread));
       padding: 0;
       border: 0;
       background: none;
@@ -86,6 +96,19 @@ const SETTLE_MS = 300;
     .front {
       color: var(--gold);
     }
+    .leaving button {
+      --spread: 1.06;
+      opacity: 0;
+      transition:
+        top 300ms ease,
+        left 300ms ease,
+        opacity 300ms ease;
+    }
+    .leaving .ellipse,
+    .hint.leaving {
+      opacity: 0;
+      transition: opacity 300ms ease;
+    }
     .hint {
       position: fixed;
       right: 0;
@@ -111,6 +134,8 @@ export class SystemRing {
     ATTRACTORS.findIndex(({ id }) => id === this.store.attractorId()),
   );
   protected readonly front = computed(() => mod(this.turns(), COUNT));
+  protected readonly leaving = signal(false);
+  private readonly destroyRef = inject(DestroyRef);
 
   constructor() {
     effect((onCleanup) => {
@@ -125,7 +150,7 @@ export class SystemRing {
   }
 
   protected onKey(event: KeyboardEvent): void {
-    if (event.repeat || event.ctrlKey || event.metaKey || event.altKey) {
+    if (this.leaving() || event.repeat || event.ctrlKey || event.metaKey || event.altKey) {
       return;
     }
     switch (event.code) {
@@ -154,6 +179,9 @@ export class SystemRing {
   }
 
   protected choose(index: number): void {
+    if (this.leaving()) {
+      return;
+    }
     if (index === this.front()) {
       this.open();
     } else {
@@ -168,7 +196,13 @@ export class SystemRing {
 
   private open(): void {
     this.store.attractorId.set(ATTRACTORS[this.front()].id);
-    this.store.phase.set('view');
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      this.store.phase.set('view');
+      return;
+    }
+    this.leaving.set(true);
+    const timer = setTimeout(() => this.store.phase.set('view'), LEAVE_MS);
+    this.destroyRef.onDestroy(() => clearTimeout(timer));
   }
 
   private isRingButton(target: EventTarget | null): boolean {
