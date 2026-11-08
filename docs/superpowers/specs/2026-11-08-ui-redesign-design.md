@@ -81,6 +81,11 @@ mode.
 
 - Newsreader italic, weights 200, 300 and 400. Titles, system names, the symbols σ ρ β, large numbers and captions.
 - Spline Sans Mono, weights 400 and 500. Values, labels, navigation and hints.
+- STIX Two Text italic for Greek letters only. Neither Newsreader nor Spline Sans Mono has Greek, so the serif stack is
+  `'Newsreader', 'STIX Two Text', serif` and only the `greek` subset of STIX Two Text is shipped. Greek symbols are
+  always set in the serif stack, never in the mono one.
+- No font has the subscript digits U+2080 to U+2089. λ₁ is set as `λ<sub>1</sub>` in HTML and with a `<tspan>` using
+  `baseline-shift` in SVG, so the 1 is Newsreader's own digit.
 - No text smaller than 12px.
 
 Both fonts are self-hosted. The `woff2` files from Google Fonts go into `public/fonts` with their SIL Open Font License
@@ -362,7 +367,7 @@ dozen lines of logic, as the owner works through them one file at a time.
 - Statistics variant 1 plus the FTLE histogram from variant 2.
 - The Lorenz favicon in speed colours, tuned so the palette starts at teal.
 - Magnetic bifurcation marks with `[` and `]` jumps.
-- Self-hosted fonts.
+- Self-hosted fonts, with STIX Two Text for the Greek letters.
 - Everything marked as an assumption in the chat playbacks, which the owner confirmed.
 
 ## Designer's calls
