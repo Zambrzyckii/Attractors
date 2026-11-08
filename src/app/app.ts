@@ -23,7 +23,10 @@ import { ViewerStore } from './viewer-store';
   imports: [RouterOutlet, StartScreen, SystemRing, TopBar],
   templateUrl: './app.html',
   styleUrl: './app.css',
-  host: { '(window:keydown)': 'shortcuts.handle($event)' },
+  host: {
+    '(window:keydown)': 'shortcuts.handle($event)',
+    '(window:popstate)': 'onPopState()',
+  },
 })
 export class App {
   private readonly canvas = viewChild.required<ElementRef<HTMLCanvasElement>>('canvas');
@@ -44,5 +47,11 @@ export class App {
   constructor() {
     inject(DestroyRef).onDestroy(() => this.host.dispose());
     afterNextRender(() => this.host.start(this.canvas().nativeElement));
+  }
+
+  protected onPopState(): void {
+    if (this.store.phase() === 'select') {
+      this.store.phase.set('view');
+    }
   }
 }
