@@ -3,13 +3,14 @@ import { findAttractor } from '../engine/attractors/registry';
 import { LyapunovPanel } from './lyapunov-panel';
 import { BenchmarkTable } from './benchmark-table';
 import { EngineHost } from './engine-host';
+import { FtleHistogramChart } from './ftle-histogram';
 import { formatValue } from './param-scale';
 import { StatLists } from './stat-lists';
 import { ViewerStore } from './viewer-store';
 
 @Component({
   selector: 'app-statistics-page',
-  imports: [BenchmarkTable, LyapunovPanel, StatLists],
+  imports: [BenchmarkTable, FtleHistogramChart, LyapunovPanel, StatLists],
   template: `
     <section aria-label="Statistics">
       <h1>
@@ -21,6 +22,9 @@ import { ViewerStore } from './viewer-store';
         </small>
       </h1>
       <app-lyapunov-panel />
+      @if (store.stats()?.ftle; as ftle) {
+        <app-ftle-histogram [histogram]="ftle" />
+      }
       <app-stat-lists (run)="host.runBenchmark()" />
       @if (store.benchmark(); as report) {
         <app-benchmark-table [report]="report" />
