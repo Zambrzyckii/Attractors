@@ -83,7 +83,9 @@ mode.
 - Spline Sans Mono, weights 400 and 500. Values, labels, navigation and hints.
 - No text smaller than 12px.
 
-How the fonts load is an open question for the owner, see Open questions.
+Both fonts are self-hosted. The `woff2` files from Google Fonts go into `public/fonts` with their SIL Open Font License
+text, and `@font-face` rules in `src/styles.css` load them. No npm package and no request to a third party. Whether to
+use the variable files or one file per weight is the builder's call.
 
 ## Flow
 
@@ -178,15 +180,20 @@ Parameter line, bottom left.
 - The scale has a baseline hairline, minor ticks, major ticks with labels in Newsreader italic 13px `--mute`, and a fade
   at both edges. Parameters with `scale: 'log'` (`src/engine/attractors/lorenz.ts:14`) get a logarithmic scale
   labelled at 1, 2 and 5 per decade.
-- Marks from `param.marks` appear as small `--gold` triangles above the baseline with their `title` beside them in
-  Newsreader italic 12px. When another parameter differs from its default the marks dim to 35%, keeping today's meaning
-  (`src/app/control-panel.ts:136-141`, `src/app/param-slider.ts:84-86`).
+- Marks from `param.marks` appear as small `--gold` triangles above the baseline. Only the mark nearest the cursor shows
+  its `title`, in Newsreader italic 12px, so close marks such as 24.06 and 24.74 (`src/engine/attractors/lorenz.ts:16-20`)
+  never collide and the preset titles stay as they are. When another parameter differs from its default the marks dim
+  to 35%, keeping today's meaning (`src/app/control-panel.ts:136-141`, `src/app/param-slider.ts:84-86`).
+- Marks are magnetic. While dragging, a value within 10 of 1000 positions of a mark snaps to the mark's exact value, the
+  same way it snaps to the default. When several are in reach, the nearest wins. This replaces today's mark buttons
+  (`src/app/param-slider.ts:34-47`), which set exact values that 1000 log positions cannot hit.
 - The value mapping and the snap to the default within 10 of 1000 positions are reused from `ParamSlider`
   (`src/app/param-slider.ts:4-5`, `:110-136`). The snap applies to dragging only. With keys it would pull a chip that
   sits at its default straight back on every step of 1 or 10. The full range spans about 1100px of scale.
 - Keyboard. Each chip is focusable with `role="slider"`, `aria-valuemin`, `aria-valuemax`, `aria-valuenow` and
   `aria-valuetext`. Focus opens the rule. Left and Right move by one position of 1000, Shift moves by 10, Page Up and
-  Page Down by 100, Home and End jump to the ends. Escape closes the rule.
+  Page Down by 100, Home and End jump to the ends. `[` and `]` jump to the exact value of the previous or next mark in
+  value order, the default counting as a mark. Escape closes the rule.
 - Double click on a chip resets that parameter to its default. R still resets all of them. The Reset button
   (`src/app/control-panel.ts:21-28`) goes away.
 - While the benchmark runs, everything that changes the engine state is disabled, as today (`src/app/control-panel.ts:16`,
@@ -263,6 +270,7 @@ dispatches by phase and route, replacing the one in `src/app/viewer.ts:95-123`.
 | Left, Right    | Begin  | Turn the ring    | Move a focused chip     |            |
 | Enter, Space   | Begin  | Open front name  |                         |            |
 | Escape         | Begin  |                  | Close the open rule     |            |
+| `[`, `]`       | Begin  |                  | Previous or next mark on a focused chip |  |
 | H              | Begin  |                  | Hide or show the UI     |            |
 | R              | Begin  |                  | Reset parameters        | Same       |
 | N              | Begin  | Turn the ring    | Next system             | Same       |
@@ -352,14 +360,15 @@ dozen lines of logic, as the owner works through them one file at a time.
 - Variant 3b for parameters and the thin seismograph for λ₁.
 - The ring for selection, the row of four live figures for Start and several small engines to draw them.
 - Statistics variant 1 plus the FTLE histogram from variant 2.
-- The Lorenz favicon in speed colours.
+- The Lorenz favicon in speed colours, tuned so the palette starts at teal.
+- Magnetic bifurcation marks with `[` and `]` jumps.
+- Self-hosted fonts.
 - Everything marked as an assumption in the chat playbacks, which the owner confirmed.
 
 ## Designer's calls
 
 The owner should check these while reading.
 
-- The palette of the favicon starts at teal instead of navy.
 - A fresh load of `/statistics` skips Start and Select.
 - "Tap to begin" on coarse pointers.
 - Focusing a ring name with Tab turns the ring to it.
@@ -382,11 +391,4 @@ The owner should check these while reading.
 
 ## Open questions
 
-1. How the bifurcation marks work on the slide rule. Today each mark is a button that sets its exact value and is
-   reachable by keyboard (`src/app/param-slider.ts:34-47`). A rule that closes on release leaves the triangles passive,
-   and 1000 log positions cannot land exactly on 13.93 or 24.06. The titles also collide, because 24.06 and 24.74 sit
-   about 5px apart and the titles are long (`src/engine/attractors/lorenz.ts:16-20`).
-2. Whether the favicon is the second card, "Lorenz, speed colours", in its tuned form.
-3. How the two fonts load. A `<link>` to Google Fonts in `src/index.html` is the simplest but makes a request to a
-   third party on every visit and needs a network connection during development. Self-hosting the `woff2` files in
-   `public/fonts` adds about 200 KB of assets and no npm package. Both fonts are under the SIL Open Font License.
+None. The owner answered the last three on 2026-11-08.
