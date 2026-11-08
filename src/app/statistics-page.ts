@@ -1,6 +1,7 @@
 import { Component, computed, inject } from '@angular/core';
 import { findAttractor } from '../engine/attractors/registry';
 import { LyapunovPanel } from './lyapunov-panel';
+import { BenchmarkTable } from './benchmark-table';
 import { EngineHost } from './engine-host';
 import { formatValue } from './param-scale';
 import { StatLists } from './stat-lists';
@@ -8,7 +9,7 @@ import { ViewerStore } from './viewer-store';
 
 @Component({
   selector: 'app-statistics-page',
-  imports: [LyapunovPanel, StatLists],
+  imports: [BenchmarkTable, LyapunovPanel, StatLists],
   template: `
     <section aria-label="Statistics">
       <h1>
@@ -21,6 +22,9 @@ import { ViewerStore } from './viewer-store';
       </h1>
       <app-lyapunov-panel />
       <app-stat-lists (run)="host.runBenchmark()" />
+      @if (store.benchmark(); as report) {
+        <app-benchmark-table [report]="report" />
+      }
     </section>
   `,
   styles: `
@@ -57,7 +61,7 @@ import { ViewerStore } from './viewer-store';
   `,
 })
 export class StatisticsPage {
-  private readonly store = inject(ViewerStore);
+  protected readonly store = inject(ViewerStore);
   protected readonly host = inject(EngineHost);
   protected readonly preset = computed(() => findAttractor(this.store.attractorId()));
   protected readonly params = computed(() =>
