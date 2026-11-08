@@ -29,6 +29,14 @@ import { ViewerStore } from './viewer-store';
       align-items: baseline;
       animation: enter 400ms ease 100ms backwards;
     }
+    @media (max-width: 899px), (orientation: portrait) {
+      section {
+        right: 16px;
+        left: 16px;
+        flex-wrap: wrap;
+        row-gap: 10px;
+      }
+    }
   `,
 })
 export class ParamLine {

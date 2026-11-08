@@ -39,6 +39,7 @@ import { ViewerStore } from './viewer-store';
       left: 30px;
       width: 482px;
       display: grid;
+      grid-template-columns: minmax(0, 1fr);
       align-content: start;
       gap: 18px;
       overflow-y: auto;
@@ -61,6 +62,13 @@ import { ViewerStore } from './viewer-store';
     .param + .param::before {
       content: '·';
       margin: 0 8px;
+    }
+    @media (max-width: 899px), (orientation: portrait) {
+      section {
+        right: 16px;
+        left: 16px;
+        width: auto;
+      }
     }
   `,
 })

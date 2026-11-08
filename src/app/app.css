@@ -33,6 +33,13 @@
   white-space: pre-wrap;
   pointer-events: none;
 }
+@media (max-width: 899px), (orientation: portrait) {
+  .main.shifted {
+    transform: none;
+    mask-image: none;
+    opacity: 0.18;
+  }
+}
 @media (prefers-reduced-motion: reduce) {
   .main {
     transition: opacity 400ms ease;

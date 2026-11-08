@@ -14,10 +14,15 @@ const COUNT = ATTRACTORS.length;
 const FRONT_ANGLE = 90;
 const SETTLE_MS = 300;
 const LEAVE_MS = 300;
+const SWIPE_PX = 40;
 
 @Component({
   selector: 'app-system-ring',
-  host: { '(document:keydown)': 'onKey($event)' },
+  host: {
+    '(document:keydown)': 'onKey($event)',
+    '(document:pointerdown)': 'swipeStart($event)',
+    '(document:pointerup)': 'swipeEnd($event)',
+  },
   template: `
     <p class="mark">Attractors</p>
     <div class="ring" [class.leaving]="leaving()">
@@ -119,6 +124,15 @@ const LEAVE_MS = 300;
       font: 13px var(--mono);
       text-align: center;
     }
+    @media (max-width: 899px), (orientation: portrait) {
+      .ellipse {
+        width: 90vw;
+      }
+      button {
+        left: calc(50% + cos(var(--a)) * 45vw * var(--spread));
+        transform: translate(calc(-50% - cos(var(--a)) * 50%), -50%) rotate(8deg);
+      }
+    }
     @media (prefers-reduced-motion: reduce) {
       button {
         transition: none;
@@ -136,6 +150,7 @@ export class SystemRing {
   protected readonly front = computed(() => mod(this.turns(), COUNT));
   protected readonly leaving = signal(false);
   private readonly destroyRef = inject(DestroyRef);
+  private swipeX: number | null = null;
 
   constructor() {
     effect((onCleanup) => {
@@ -169,6 +184,22 @@ export class SystemRing {
           this.open();
         }
         break;
+    }
+  }
+
+  protected swipeStart(event: PointerEvent): void {
+    this.swipeX = event.pointerType === 'touch' ? event.clientX : null;
+  }
+
+  protected swipeEnd(event: PointerEvent): void {
+    const start = this.swipeX;
+    this.swipeX = null;
+    if (start === null || this.leaving()) {
+      return;
+    }
+    const dx = event.clientX - start;
+    if (Math.abs(dx) > SWIPE_PX) {
+      this.turns.update((turns) => turns + Math.sign(dx));
     }
   }
 

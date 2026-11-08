@@ -21,7 +21,7 @@ const FIGURE_QUALITY = 'tiny';
   template: `
     <h1>Attractors</h1>
     @for (attractor of attractors; track attractor.id; let index = $index) {
-      <figure [style.left.%]="20 * (index + 1)" [style.--dx]="20 * (index + 1) - 50 + 'vw'">
+      <figure [style.--i]="index">
         <canvas #figure></canvas>
         <figcaption>{{ attractor.name }}</figcaption>
       </figure>
@@ -49,10 +49,13 @@ const FIGURE_QUALITY = 'tiny';
       transform: translateY(-50%);
     }
     figure {
+      --size: 17vw;
+      --dx: calc(20vw * var(--i) - 30vw);
       --dy: 12vh;
       position: absolute;
       top: 62%;
-      width: 17vw;
+      left: calc(20% + 20% * var(--i));
+      width: var(--size);
       margin: 0;
       transform: translate(-50%, -50%);
       transition: transform 1200ms cubic-bezier(0.33, 1, 0.68, 1);
@@ -67,8 +70,8 @@ const FIGURE_QUALITY = 'tiny';
     }
     canvas {
       display: block;
-      width: 17vw;
-      height: 17vw;
+      width: var(--size);
+      height: var(--size);
       pointer-events: none;
       mask-image: radial-gradient(closest-side, #000 62%, transparent);
     }
@@ -99,6 +102,22 @@ const FIGURE_QUALITY = 'tiny';
     @keyframes breathe {
       50% {
         opacity: 0.35;
+      }
+    }
+    @media (max-width: 899px), (orientation: portrait) {
+      h1 {
+        font-size: clamp(48px, 12vw, 132px);
+      }
+    }
+    @media (orientation: portrait) {
+      figure {
+        --size: min(38vw, 22vh);
+        --column: mod(var(--i), 2);
+        --row: round(down, var(--i) / 2, 1);
+        --dx: calc(44vw * var(--column) - 22vw);
+        --dy: calc(26vh * var(--row) - 10vh);
+        top: calc(40% + 26% * var(--row));
+        left: calc(28% + 44% * var(--column));
       }
     }
     @media (prefers-reduced-motion: reduce) {

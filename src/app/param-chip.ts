@@ -79,6 +79,16 @@ interface DragStart {
       left: 50%;
       transform: translateX(-50%);
     }
+    @media (max-width: 899px), (orientation: portrait) {
+      app-slide-rule {
+        --rule-width: calc(100vw - 32px);
+        position: fixed;
+        top: auto;
+        bottom: 150px;
+        left: 16px;
+        transform: none;
+      }
+    }
   `,
 })
 export class ParamChip {

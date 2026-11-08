@@ -114,6 +114,28 @@ import { ViewerStore } from './viewer-store';
     .options button[aria-pressed='true'] {
       color: var(--ink);
     }
+    @media (max-width: 899px), (orientation: portrait) {
+      :host {
+        position: fixed;
+        top: 58px;
+        right: 16px;
+        left: 30px;
+        display: grid;
+        gap: 14px;
+      }
+      .system,
+      .options {
+        position: static;
+        justify-items: start;
+      }
+      h1 {
+        font-size: 36px;
+      }
+      nav {
+        flex-wrap: wrap;
+        gap: 4px 14px;
+      }
+    }
   `,
 })
 export class ViewerHeader {

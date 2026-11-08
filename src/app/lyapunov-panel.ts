@@ -1,11 +1,12 @@
 import { Component, computed, inject } from '@angular/core';
 import { LYAPUNOV_HISTORY_SAMPLES } from '../engine/lyapunov-estimate';
+import { elementSize } from './element-size';
 import { buildSparkline } from './sparkline';
 import { ViewerStore } from './viewer-store';
 
 const WIDTH = 470;
 const HEIGHT = 86;
-const PLOT_WIDTH = 408;
+const VALUE_SPACE = 62;
 const PLOT_TOP = 6;
 const PLOT_HEIGHT = 64;
 const PADDING = 2;
@@ -19,29 +20,36 @@ const VALUE_DROP = 4;
       <b [class.measuring]="estimate() === null">λ<sub>1</sub> {{ readout() }}</b>
       <span>largest Lyapunov exponent, 10 s mean</span>
     </p>
-    <svg [attr.width]="width" [attr.height]="height" aria-hidden="true">
+    <svg [attr.width]="width()" [attr.height]="height" aria-hidden="true">
       @if (line(); as line) {
         <g [attr.transform]="'translate(0 ' + plotTop + ')'" [class.settling]="estimate() === null">
           <line
             class="zero"
             x1="0"
-            [attr.x2]="plotWidth"
+            [attr.x2]="plotWidth()"
             [attr.y1]="line.zero"
             [attr.y2]="line.zero"
           />
           <polyline [attr.points]="line.points" />
           @if (estimate() !== null) {
-            <text class="value" [attr.x]="plotWidth + valueGap" [attr.y]="line.head.y + valueDrop">
+            <text
+              class="value"
+              [attr.x]="plotWidth() + valueGap"
+              [attr.y]="line.head.y + valueDrop"
+            >
               {{ readout() }}
             </text>
           }
         </g>
       }
       <text x="0" [attr.y]="height - 2">60 s ago</text>
-      <text class="now" [attr.x]="plotWidth" [attr.y]="height - 2">now</text>
+      <text class="now" [attr.x]="plotWidth()" [attr.y]="height - 2">now</text>
     </svg>
   `,
   styles: `
+    :host {
+      display: block;
+    }
     p {
       display: flex;
       flex-wrap: wrap;
@@ -91,9 +99,10 @@ const VALUE_DROP = 4;
 })
 export class LyapunovPanel {
   private readonly store = inject(ViewerStore);
-  protected readonly width = WIDTH;
+  private readonly size = elementSize({ width: WIDTH, height: 0 });
+  protected readonly width = computed(() => this.size().width);
   protected readonly height = HEIGHT;
-  protected readonly plotWidth = PLOT_WIDTH;
+  protected readonly plotWidth = computed(() => Math.max(0, this.width() - VALUE_SPACE));
   protected readonly plotTop = PLOT_TOP;
   protected readonly valueGap = VALUE_GAP;
   protected readonly valueDrop = VALUE_DROP;
@@ -101,6 +110,12 @@ export class LyapunovPanel {
   protected readonly estimate = computed(() => this.store.stats()?.lyapunov.estimate ?? null);
   protected readonly readout = computed(() => this.estimate()?.toFixed(3) ?? 'measuring');
   protected readonly line = computed(() =>
-    buildSparkline(this.history(), LYAPUNOV_HISTORY_SAMPLES, PLOT_WIDTH, PLOT_HEIGHT, PADDING),
+    buildSparkline(
+      this.history(),
+      LYAPUNOV_HISTORY_SAMPLES,
+      this.plotWidth(),
+      PLOT_HEIGHT,
+      PADDING,
+    ),
   );
 }

@@ -1,5 +1,6 @@
-import { Component, computed, DestroyRef, ElementRef, inject, signal } from '@angular/core';
+import { Component, computed, inject } from '@angular/core';
 import { LYAPUNOV_HISTORY_SAMPLES } from '../engine/lyapunov-estimate';
+import { elementSize } from './element-size';
 import { groupDigits } from './format';
 import { buildSparkline } from './sparkline';
 import { ViewerStore } from './viewer-store';
@@ -10,7 +11,7 @@ const READOUT_SPACE = 170;
 const TEXT_GAP = 12;
 const TEXT_DROP = 9;
 const TEXT_TOP = 28;
-const TEXT_BOTTOM = 48;
+const TEXT_BOTTOM_GAP = 8;
 
 @Component({
   selector: 'app-seismograph',
@@ -18,7 +19,7 @@ const TEXT_BOTTOM = 48;
     @if (meta(); as text) {
       <p>{{ text }}</p>
     }
-    <svg [attr.width]="width()" [attr.height]="height" aria-hidden="true">
+    <svg [attr.width]="width()" [attr.height]="height()" aria-hidden="true">
       @if (line(); as line) {
         <line
           class="zero"
@@ -86,12 +87,22 @@ const TEXT_BOTTOM = 48;
     .sub {
       font-size: 17px;
     }
+    @media (max-width: 899px), (orientation: portrait) {
+      :host {
+        height: 44px;
+      }
+      p {
+        right: 16px;
+        bottom: 50px;
+      }
+    }
   `,
 })
 export class Seismograph {
   private readonly store = inject(ViewerStore);
-  protected readonly height = HEIGHT;
-  protected readonly width = signal(0);
+  private readonly size = elementSize({ width: 0, height: HEIGHT });
+  protected readonly width = computed(() => this.size().width);
+  protected readonly height = computed(() => this.size().height);
   protected readonly traceWidth = computed(() => Math.max(0, this.width() - READOUT_SPACE));
   protected readonly estimate = computed(() => this.store.stats()?.lyapunov.estimate ?? null);
   protected readonly readout = computed(() => this.estimate()?.toFixed(3) ?? 'measuring');
@@ -100,14 +111,14 @@ export class Seismograph {
       this.store.stats()?.lyapunov.history ?? [],
       LYAPUNOV_HISTORY_SAMPLES,
       this.traceWidth(),
-      HEIGHT,
+      this.height(),
       PADDING,
     ),
   );
   protected readonly textX = computed(() => this.traceWidth() + TEXT_GAP);
   protected readonly textY = computed(() => {
-    const head = this.line()?.head.y ?? HEIGHT / 2;
-    return Math.min(Math.max(head + TEXT_DROP, TEXT_TOP), TEXT_BOTTOM);
+    const head = this.line()?.head.y ?? this.height() / 2;
+    return Math.min(Math.max(head + TEXT_DROP, TEXT_TOP), this.height() - TEXT_BOTTOM_GAP);
   });
   protected readonly meta = computed(() => {
     const stats = this.store.stats();
@@ -115,11 +126,4 @@ export class Seismograph {
       ? `${groupDigits(stats.particles)} particles · ${Math.round(stats.fps)} fps`
       : null;
   });
-
-  constructor() {
-    const host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
-    const observer = new ResizeObserver(([entry]) => this.width.set(entry.contentRect.width));
-    observer.observe(host);
-    inject(DestroyRef).onDestroy(() => observer.disconnect());
-  }
 }

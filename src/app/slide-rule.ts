@@ -68,7 +68,7 @@ const TITLE_RISE = 3;
   styles: `
     .window {
       position: relative;
-      width: 300px;
+      width: var(--rule-width, 300px);
       height: 40px;
       overflow: hidden;
       mask: linear-gradient(90deg, transparent, #000 22%, #000 78%, transparent);
@@ -76,7 +76,7 @@ const TITLE_RISE = 3;
     svg {
       position: absolute;
       top: 0;
-      left: 0;
+      left: calc(50% - 150px);
     }
     .base {
       stroke: var(--hair);

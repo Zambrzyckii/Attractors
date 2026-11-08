@@ -1,5 +1,6 @@
 import { Component, computed, input } from '@angular/core';
 import { FtleHistogram } from '../engine/passes/ftle-histogram';
+import { elementSize } from './element-size';
 import { formatValue, niceStep } from './param-scale';
 
 const WIDTH = 470;
@@ -18,7 +19,7 @@ type Anchor = 'start' | 'middle' | 'end';
   selector: 'app-ftle-histogram',
   template: `
     <figure>
-      <svg [attr.width]="width" [attr.height]="height" aria-hidden="true">
+      <svg [attr.width]="width()" [attr.height]="height" aria-hidden="true">
         @for (bar of chart().bars; track $index) {
           <rect
             [class.chaos]="bar.chaos"
@@ -45,6 +46,9 @@ type Anchor = 'start' | 'middle' | 'end';
     </figure>
   `,
   styles: `
+    :host {
+      display: block;
+    }
     figure {
       margin: 0;
     }
@@ -81,23 +85,25 @@ type Anchor = 'start' | 'middle' | 'end';
 })
 export class FtleHistogramChart {
   readonly histogram = input.required<FtleHistogram>();
-  protected readonly width = WIDTH;
+  private readonly size = elementSize({ width: WIDTH, height: 0 });
+  protected readonly width = computed(() => this.size().width);
   protected readonly height = HEIGHT;
   protected readonly base = BASE;
   protected readonly labelY = LABEL_Y;
   protected readonly chart = computed(() => {
     const { range, counts, mean } = this.histogram();
+    const width = this.width();
     const [min, max] = range;
-    const x = (value: number) => ((value - min) / (max - min)) * WIDTH;
-    const binWidth = WIDTH / counts.length;
+    const x = (value: number) => ((value - min) / (max - min)) * width;
+    const binWidth = width / counts.length;
     const tallest = Math.max(...counts) || 1;
     const bars = counts.map((count, index) => {
       const height = (count / tallest) * BAR_SPACE;
       const centre = min + (index + 0.5) * ((max - min) / counts.length);
       return { x: index * binWidth + 0.5, y: BASE - height, width: binWidth - 1, height, chaos: centre > 0 };
     });
-    const meanX = Math.min(Math.max(x(mean), 0), WIDTH);
-    const flip = meanX > WIDTH - MEAN_LABEL_SPACE;
+    const meanX = Math.min(Math.max(x(mean), 0), width);
+    const flip = meanX > width - MEAN_LABEL_SPACE;
     return {
       bars,
       zero: min < 0 && max > 0 ? x(0) : null,
@@ -110,7 +116,7 @@ export class FtleHistogramChart {
       ticks: axisTicks(min, max).map((value) => ({
         x: x(value),
         label: formatValue(value),
-        anchor: edgeAnchor(x(value)),
+        anchor: edgeAnchor(x(value), width),
       })),
     };
   });
@@ -123,9 +129,9 @@ function axisTicks(min: number, max: number): number[] {
   return Array.from({ length: last - first + 1 }, (_, index) => (first + index) * step);
 }
 
-function edgeAnchor(position: number): Anchor {
+function edgeAnchor(position: number, width: number): Anchor {
   if (position < EDGE) {
     return 'start';
   }
-  return position > WIDTH - EDGE ? 'end' : 'middle';
+  return position > width - EDGE ? 'end' : 'middle';
 }
