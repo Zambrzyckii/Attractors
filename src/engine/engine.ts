@@ -16,6 +16,7 @@ import { PresetPrograms } from './passes/preset-programs';
 import { SeedPass } from './passes/seed';
 import { SimulatePass } from './passes/simulate';
 import { SplatPass, SplatView } from './passes/splat';
+import { FtleHistogram, FtleHistogramPass } from './passes/ftle-histogram';
 import { ParticleStats, StatsPass } from './passes/stats';
 import { ColorMode, findQuality, QUALITIES, QualityPreset } from './settings';
 
@@ -28,6 +29,7 @@ export interface EngineStats {
   timeStep: number;
   substeps: number;
   gliding: boolean;
+  ftle: FtleHistogram | null;
 }
 
 export interface BenchmarkRow {
@@ -49,6 +51,7 @@ interface PipelineStep {
 }
 
 const STATS_INTERVAL_SECONDS = 0.25;
+const HISTOGRAM_INTERVAL_SECONDS = 1;
 const ANCHOR_WARMUP_STEPS = 3000;
 const STATE_ATTACHMENTS = 2;
 const INITIAL_AZIMUTH = 0.4 - Math.PI / 2;
@@ -79,6 +82,7 @@ export class AttractorEngine {
   private readonly bloom: BloomPass;
   private readonly meter: ExposureMeter;
   private readonly stats: StatsPass;
+  private readonly histogram: FtleHistogramPass;
   private readonly lyapunov = new LyapunovEstimate();
   private readonly composite: CompositePass;
   private readonly blowUp: BlowUpPass;
@@ -93,6 +97,8 @@ export class AttractorEngine {
   private frameSeconds = 1 / 60;
   private sinceStats = 0;
   private cloud: ParticleStats | null = null;
+  private ftleCounts: number[] | null = null;
+  private sinceHistogram = HISTOGRAM_INTERVAL_SECONDS;
 
   constructor(
     private readonly canvas: HTMLCanvasElement,
@@ -119,6 +125,7 @@ export class AttractorEngine {
     this.meter = new ExposureMeter(gl);
     this.resizeBloom();
     this.stats = new StatsPass(gl, this.programs);
+    this.histogram = new FtleHistogramPass(gl);
     this.composite = new CompositePass(gl);
     this.blowUp = new BlowUpPass(gl);
     this.history = this.createHistory();
@@ -165,6 +172,8 @@ export class AttractorEngine {
     this.attractor = new LiveAttractor(preset);
     this.stats.invalidate();
     this.cloud = null;
+    this.histogram.invalidate();
+    this.ftleCounts = null;
     this.lyapunov.restart();
     this.reseed();
   }
@@ -235,7 +244,17 @@ export class AttractorEngine {
     this.attractor.follow(particleStats, dt);
     this.frameCamera();
     this.render(dt, exposure);
+    this.measureHistogram(dt);
     this.reportStats(dt, exposure);
+  }
+
+  private measureHistogram(dt: number): void {
+    this.sinceHistogram += dt;
+    if (this.sinceHistogram >= HISTOGRAM_INTERVAL_SECONDS) {
+      this.sinceHistogram = 0;
+      this.histogram.measure(this.state.read, this.preset.ftleRange);
+    }
+    this.ftleCounts = this.histogram.poll() ?? this.ftleCounts;
   }
 
   private render(dt: number, exposure: number): void {
@@ -370,6 +389,10 @@ export class AttractorEngine {
         timeStep: this.simulate.step,
         substeps: this.simulate.substeps,
         gliding: this.attractor.gliding,
+        ftle:
+          this.ftleCounts && this.cloud
+            ? { range: this.preset.ftleRange, counts: this.ftleCounts, mean: this.cloud.meanFtle }
+            : null,
       });
     }
   }
