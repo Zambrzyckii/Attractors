@@ -9,6 +9,7 @@ import {
   signal,
   viewChild,
 } from '@angular/core';
+import { findAttractor } from '../engine/attractors/registry';
 import { AttractorEngine } from '../engine/engine';
 import { measureRefreshRate } from '../engine/frame-clock';
 import { defaultQualityFor } from '../engine/settings';
@@ -78,7 +79,15 @@ export class Viewer {
         engine.onStats((stats) => this.store.stats.set(stats));
         engine.start();
         destroyRef.onDestroy(() => engine.dispose());
-        effect(() => engine.setAttractor(this.store.attractorId()), { injector });
+        effect(
+          () => {
+            const preset = findAttractor(this.store.attractorId());
+            const values = this.store.params();
+            engine.setAttractor(preset.id);
+            preset.params.forEach(({ name }, index) => engine.setParam(name, values[index]));
+          },
+          { injector },
+        );
         effect(() => engine.setQuality(this.store.qualityId()), { injector });
         const onKeyDown = (event: KeyboardEvent) => {
           if (event.code === 'KeyB') {

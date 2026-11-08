@@ -4,12 +4,12 @@ export const AIZAWA: AttractorPreset = {
   id: 'aizawa',
   name: 'Aizawa',
   params: [
-    { name: 'a', value: 0.95 },
-    { name: 'b', value: 0.7 },
-    { name: 'c', value: 0.6 },
-    { name: 'd', value: 3.5 },
-    { name: 'e', value: 0.25 },
-    { name: 'f', value: 0.1 },
+    { name: 'a', value: 0.95, min: 0.2, max: 1.2 },
+    { name: 'b', value: 0.7, min: 0.5, max: 1.4 },
+    { name: 'c', value: 0.6, min: 0.3, max: 1.2 },
+    { name: 'd', value: 3.5, min: 0.8, max: 7 },
+    { name: 'e', value: 0.25, min: 0.05, max: 0.5 },
+    { name: 'f', value: 0.1, min: 0.02, max: 0.2 },
   ],
   deriv: `vec3 deriv(vec3 p) {
   return vec3(

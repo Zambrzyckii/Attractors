@@ -4,8 +4,8 @@ export const BURKE_SHAW: AttractorPreset = {
   id: 'burke-shaw',
   name: 'Burke-Shaw',
   params: [
-    { name: 's', value: 10 },
-    { name: 'v', value: 4.272 },
+    { name: 's', value: 10, min: 2.5, max: 20 },
+    { name: 'v', value: 4.272, min: 1, max: 8.5 },
   ],
   deriv: `vec3 deriv(vec3 p) {
   return vec3(-s * (p.x + p.y), -p.y - s * p.x * p.z, s * p.x * p.y + v);

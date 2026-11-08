@@ -1,11 +1,14 @@
-import { Injectable, signal } from '@angular/core';
-import { ATTRACTORS } from '../engine/attractors/registry';
+import { Injectable, linkedSignal, signal } from '@angular/core';
+import { ATTRACTORS, findAttractor } from '../engine/attractors/registry';
 import { BenchmarkReport, EngineStats } from '../engine/engine';
 import { DEFAULT_QUALITY, hasQuality } from '../engine/settings';
 
 @Injectable({ providedIn: 'root' })
 export class ViewerStore {
   readonly attractorId = signal(ATTRACTORS[0].id);
+  readonly params = linkedSignal(() =>
+    findAttractor(this.attractorId()).params.map(({ value }) => value),
+  );
   private readonly requestedQuality = requestedQuality();
   readonly qualityPinned = this.requestedQuality !== null;
   readonly qualityId = signal(this.requestedQuality ?? DEFAULT_QUALITY);

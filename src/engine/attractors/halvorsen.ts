@@ -3,7 +3,7 @@ import { AttractorPreset } from './attractor';
 export const HALVORSEN: AttractorPreset = {
   id: 'halvorsen',
   name: 'Halvorsen',
-  params: [{ name: 'a', value: 1.4 }],
+  params: [{ name: 'a', value: 1.4, min: 1.25, max: 2.8 }],
   deriv: `vec3 deriv(vec3 p) {
   return -a * p - 4.0 * (p.yzx + p.zxy) - p.yzx * p.yzx;
 }`,

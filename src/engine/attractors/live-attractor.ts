@@ -7,12 +7,16 @@ export const PARAM_SLOTS = 8;
 const FRAMING_SECONDS = 4;
 const MIN_SPREAD = 0.25;
 const MIN_SPEED = 0.25;
+const GLIDE_SECONDS = 2;
 
 export class LiveAttractor {
   readonly params = new Float32Array(PARAM_SLOTS);
   center: Vec3;
   halfExtent: number;
   private readonly defaults = new Float32Array(PARAM_SLOTS);
+  private readonly glideFrom = new Float32Array(PARAM_SLOTS);
+  private readonly glideTo = new Float32Array(PARAM_SLOTS);
+  private readonly glideProgress = new Float64Array(PARAM_SLOTS).fill(1);
   private targetCenter: Vec3;
   private targetHalfExtent: number;
   private slowdown = 1;
@@ -23,6 +27,7 @@ export class LiveAttractor {
   constructor(readonly preset: AttractorPreset) {
     this.defaults.set(preset.params.map(({ value }) => value));
     this.params.set(this.defaults);
+    this.glideTo.set(this.defaults);
     this.center = this.targetCenter = [...preset.center];
     this.halfExtent = this.targetHalfExtent = preset.halfExtent;
   }
@@ -44,10 +49,17 @@ export class LiveAttractor {
     if (index < 0) {
       throw new Error(`Unknown parameter ${name} in ${this.preset.name}.`);
     }
-    this.params[index] = value;
+    const target = Math.fround(value);
+    if (target === this.glideTo[index]) {
+      return;
+    }
+    this.glideFrom[index] = this.params[index];
+    this.glideTo[index] = target;
+    this.glideProgress[index] = 0;
   }
 
   follow(stats: ParticleStats | null, dt: number): void {
+    this.glide(dt);
     if (this.params.every((value, index) => value === this.defaults[index])) {
       this.targetCenter = [...this.preset.center];
       this.targetHalfExtent = this.preset.halfExtent;
@@ -61,6 +73,19 @@ export class LiveAttractor {
     this.halfExtent *= (this.targetHalfExtent / this.halfExtent) ** amount;
     this.slowdown *= (this.targetSlowdown / this.slowdown) ** amount;
     this.speedScale *= (this.targetSpeedScale / this.speedScale) ** amount;
+  }
+
+  private glide(dt: number): void {
+    this.glideProgress.forEach((progress, index) => {
+      if (progress === 1) {
+        return;
+      }
+      const next = Math.min(1, progress + dt / GLIDE_SECONDS);
+      const from = this.glideFrom[index];
+      const to = this.glideTo[index];
+      this.glideProgress[index] = next;
+      this.params[index] = next === 1 ? to : from + (to - from) * next;
+    });
   }
 
   private aimFraming({ centroid, rmsRadius }: ParticleStats): void {

@@ -4,9 +4,23 @@ export const LORENZ: AttractorPreset = {
   id: 'lorenz',
   name: 'Lorenz',
   params: [
-    { name: 'sigma', value: 10 },
-    { name: 'rho', value: 28 },
-    { name: 'beta', value: 8 / 3 },
+    { name: 'sigma', label: 'σ', value: 10, min: 4, max: 20 },
+    {
+      name: 'rho',
+      label: 'ρ',
+      value: 28,
+      min: 0.5,
+      max: 160,
+      scale: 'log',
+      marks: [
+        { value: 1, title: 'Origin loses stability' },
+        { value: 13.93, title: 'Homoclinic explosion' },
+        { value: 24.06, title: 'Chaotic attractor becomes stable' },
+        { value: 24.74, title: 'Hopf point, C± lose stability' },
+        { value: 99.65, title: 'Periodic window' },
+      ],
+    },
+    { name: 'beta', label: 'β', value: 8 / 3, min: 0.5, max: 4 },
   ],
   deriv: `vec3 deriv(vec3 p) {
   return vec3(sigma * (p.y - p.x), p.x * (rho - p.z) - p.y, p.x * p.y - beta * p.z);

@@ -1,6 +1,16 @@
+export interface ParamMark {
+  value: number;
+  title: string;
+}
+
 export interface AttractorParam {
   name: string;
   value: number;
+  min: number;
+  max: number;
+  label?: string;
+  scale?: 'log';
+  marks?: ParamMark[];
 }
 
 export interface AttractorPreset {
