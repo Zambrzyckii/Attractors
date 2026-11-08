@@ -2,17 +2,11 @@ import {
   afterNextRender,
   Component,
   DestroyRef,
-  effect,
   ElementRef,
   inject,
-  Injector,
-  signal,
   viewChild,
 } from '@angular/core';
-import { findAttractor } from '../engine/attractors/registry';
-import { AttractorEngine } from '../engine/engine';
-import { measureRefreshRate } from '../engine/frame-clock';
-import { defaultQualityFor } from '../engine/settings';
+import { EngineHost } from './engine-host';
 import { Hud } from './hud';
 import { ParamLine } from './param-line';
 import { Seismograph } from './seismograph';
@@ -28,11 +22,11 @@ import { ViewerStore } from './viewer-store';
       <app-viewer-header />
       <app-param-line />
       <app-seismograph />
-      @if (renderer(); as renderer) {
-        <app-hud [renderer]="renderer" (benchmark)="runBenchmark()" />
+      @if (host.caps(); as caps) {
+        <app-hud [renderer]="caps.renderer" (benchmark)="host.runBenchmark()" />
       }
     }
-    @if (error(); as message) {
+    @if (host.error(); as message) {
       <p class="error">{{ message }}</p>
     }
   `,
@@ -63,39 +57,16 @@ import { ViewerStore } from './viewer-store';
 })
 export class Viewer {
   private readonly canvas = viewChild.required<ElementRef<HTMLCanvasElement>>('canvas');
-  protected readonly renderer = signal<string | null>(null);
-  protected readonly error = signal<string | null>(null);
   protected readonly store = inject(ViewerStore);
-  private engine: AttractorEngine | null = null;
+  protected readonly host = inject(EngineHost);
 
   constructor() {
     const destroyRef = inject(DestroyRef);
-    const injector = inject(Injector);
+    destroyRef.onDestroy(() => this.host.dispose());
     afterNextRender(async () => {
-      if (!this.store.qualityPinned) {
-        this.store.qualityId.set(defaultQualityFor(await measureRefreshRate()));
-        if (destroyRef.destroyed) {
-          return;
-        }
-      }
-      try {
-        const engine = new AttractorEngine(this.canvas().nativeElement, this.store.qualityId());
-        this.engine = engine;
-        this.renderer.set(engine.caps.renderer);
-        engine.onStats((stats) => this.store.stats.set(stats));
-        engine.start();
-        destroyRef.onDestroy(() => engine.dispose());
-        effect(
-          () => {
-            const preset = findAttractor(this.store.attractorId());
-            const values = this.store.params();
-            engine.setAttractor(preset.id);
-            preset.params.forEach(({ name }, index) => engine.setParam(name, values[index]));
-          },
-          { injector },
-        );
-        effect(() => engine.setQuality(this.store.qualityId()), { injector });
-        effect(() => engine.setColorMode(this.store.colorMode()), { injector });
+      await this.host.start(this.canvas().nativeElement);
+      const engine = this.host.engine();
+      if (engine && !destroyRef.destroyed) {
         const onKeyDown = (event: KeyboardEvent) => {
           if (event.repeat || event.ctrlKey || event.metaKey || event.altKey) {
             return;
@@ -125,22 +96,8 @@ export class Viewer {
         };
         window.addEventListener('keydown', onKeyDown);
         destroyRef.onDestroy(() => window.removeEventListener('keydown', onKeyDown));
-      } catch (cause) {
-        this.error.set(cause instanceof Error ? cause.message : String(cause));
       }
     });
-  }
-
-  protected async runBenchmark(): Promise<void> {
-    if (!this.engine || this.store.benchmarkRunning()) {
-      return;
-    }
-    this.store.benchmarkRunning.set(true);
-    try {
-      this.store.benchmark.set(await this.engine.benchmark());
-    } finally {
-      this.store.benchmarkRunning.set(false);
-    }
   }
 }
 
