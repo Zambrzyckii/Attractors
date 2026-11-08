@@ -24,6 +24,7 @@ export const AIZAWA: AttractorPreset = {
   centroid: [0, 0, 0.688],
   rmsRadius: 1.051,
   meanSpeed: 2.575,
+  ftleRange: [-0.2, 0.31],
   typicalSpeed: 2.6,
   timeScale: 3,
   maxStep: 0.01,

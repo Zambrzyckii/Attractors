@@ -16,7 +16,7 @@ import { SeedPass } from './passes/seed';
 import { SimulatePass } from './passes/simulate';
 import { SplatPass, SplatView } from './passes/splat';
 import { StatsPass } from './passes/stats';
-import { findQuality, QUALITIES, QualityPreset } from './settings';
+import { ColorMode, findQuality, QUALITIES, QualityPreset } from './settings';
 
 export interface EngineStats {
   fps: number;
@@ -62,6 +62,7 @@ export class AttractorEngine {
   private readonly clock = new FrameClock();
   private attractor = new LiveAttractor(ATTRACTORS[0]);
   private quality: QualityPreset;
+  private colorMode: ColorMode = 'speed';
   private state: PingPong;
   private readonly anchor: PingPong;
   private readonly programs: PresetPrograms;
@@ -174,6 +175,10 @@ export class AttractorEngine {
     previous.dispose();
   }
 
+  setColorMode(mode: ColorMode): void {
+    this.colorMode = mode;
+  }
+
   async benchmark(): Promise<BenchmarkReport> {
     const dt = this.frameSeconds;
     const original = this.state;
@@ -232,7 +237,8 @@ export class AttractorEngine {
       },
       {
         name: 'Splat',
-        run: () => this.splat.run(this.state.read, this.attractor, this.splatView()),
+        run: () =>
+          this.splat.run(this.state.read, this.attractor, this.splatView(), this.colorMode),
       },
       {
         name: 'Accumulate',

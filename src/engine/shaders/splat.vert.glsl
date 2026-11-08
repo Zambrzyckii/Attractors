@@ -5,6 +5,8 @@ uniform float uFocusDistance;
 uniform float uBlurScale;
 uniform float uMaxSigma;
 uniform float uTypicalSpeed;
+uniform bool uFtleColor;
+uniform vec2 uFtleRange;
 uniform float uGain;
 uniform uint uFrame;
 
@@ -18,7 +20,8 @@ const vec4 CULLED = vec4(2.0, 2.0, 2.0, 1.0);
 
 void main() {
   int width = textureSize(uState, 0).x;
-  vec3 position = texelFetch(uState, ivec2(gl_VertexID % width, gl_VertexID / width), 0).xyz;
+  vec4 state = texelFetch(uState, ivec2(gl_VertexID % width, gl_VertexID / width), 0);
+  vec3 position = state.xyz;
   gl_Position = uViewProjection * vec4(position, 1.0);
   float blur = uBlurScale * abs(1.0 / gl_Position.w - 1.0 / uFocusDistance);
   float sigma = min(sqrt(SIGMA * SIGMA + blur * blur), uMaxSigma);
@@ -32,6 +35,9 @@ void main() {
   gl_PointSize = pointSize;
   vSigma = sigma;
   vPointSize = pointSize;
-  float speed = length(deriv(position));
-  vColor = palette(speed / (PALETTE_SPAN * uTypicalSpeed)) * uGain * perspective * perspective / keep;
+  float ftleSpan = state.w < 0.0 ? -uFtleRange.x : uFtleRange.y;
+  vec3 color = uFtleColor
+    ? divergingPalette(state.w / ftleSpan)
+    : palette(length(deriv(position)) / (PALETTE_SPAN * uTypicalSpeed));
+  vColor = color * uGain * perspective * perspective / keep;
 }

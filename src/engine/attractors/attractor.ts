@@ -23,6 +23,7 @@ export interface AttractorPreset {
   centroid: [number, number, number];
   rmsRadius: number;
   meanSpeed: number;
+  ftleRange: [number, number];
   typicalSpeed: number;
   timeScale: number;
   maxStep: number;

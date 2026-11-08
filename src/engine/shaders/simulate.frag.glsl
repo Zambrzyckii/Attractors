@@ -7,6 +7,7 @@ uniform float uHalfExtent;
 uniform uint uDrawIndex;
 uniform float uNoise;
 uniform float uShadowDistance;
+uniform float uFtleBlend;
 
 layout(location = 0) out vec4 outState;
 layout(location = 1) out vec4 outShadow;
@@ -26,6 +27,7 @@ void main() {
   float growth = length(offset) / uShadowDistance;
   float rate = log(growth) / (float(uSteps) * uStep);
   offset /= growth;
+  state.w = mix(state.w, rate, uFtleBlend);
   position += uNoise * (random3(uvec3(gl_FragCoord.xy, 3u * uDrawIndex + 2u)) - 0.5);
   if (!all(lessThan(abs(position - uCenter), vec3(ESCAPE_LIMIT * uHalfExtent)))) {
     vec3 pick = random3(uvec3(gl_FragCoord.xy, 3u * uDrawIndex));

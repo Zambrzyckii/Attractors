@@ -1,9 +1,11 @@
 import { LiveAttractor } from '../attractors/live-attractor';
+import { smoothing } from '../frame-clock';
 import { PingPong } from '../gl/ping-pong';
 import { PresetPrograms } from './preset-programs';
 
 const MAX_STEPS_PER_DRAW = 64;
 const NOISE_FLOOR = 1e-4;
+const FTLE_SECONDS = 1;
 
 export class SimulatePass {
   private drawIndex = 0;
@@ -48,6 +50,8 @@ export class SimulatePass {
     const noise = NOISE_FLOOR * attractor.halfExtent * Math.sqrt(12 * steps * step);
     gl.uniform1f(program.location('uNoise'), noise);
     gl.uniform1f(program.location('uShadowDistance'), attractor.shadowDistance);
+    const seconds = (steps * step) / attractor.timeScale;
+    gl.uniform1f(program.location('uFtleBlend'), smoothing(seconds, FTLE_SECONDS));
     gl.uniform1ui(program.location('uDrawIndex'), this.drawIndex++);
     gl.drawArrays(gl.TRIANGLES, 0, 3);
     state.swap();

@@ -1,6 +1,6 @@
 import { Component, computed, inject } from '@angular/core';
 import { ATTRACTORS, findAttractor } from '../engine/attractors/registry';
-import { QUALITIES } from '../engine/settings';
+import { COLOR_MODES, QUALITIES } from '../engine/settings';
 import { ParamSlider } from './param-slider';
 import { ViewerStore } from './viewer-store';
 
@@ -51,6 +51,18 @@ import { ViewerStore } from './viewer-store';
         </button>
       }
     </nav>
+    <nav class="panel color" aria-label="Color">
+      @for (mode of colorModes; track mode.id) {
+        <button
+          type="button"
+          [disabled]="store.benchmarkRunning()"
+          [attr.aria-pressed]="mode.id === store.colorMode()"
+          (click)="store.colorMode.set(mode.id)"
+        >
+          {{ mode.name }}
+        </button>
+      }
+    </nav>
   `,
   styles: `
     .panel {
@@ -84,6 +96,10 @@ import { ViewerStore } from './viewer-store';
     .quality {
       right: 16px;
     }
+    .color {
+      right: 16px;
+      bottom: 72px;
+    }
     button {
       padding: 6px 12px;
       border: 1px solid transparent;
@@ -111,6 +127,7 @@ export class ControlPanel {
   protected readonly store = inject(ViewerStore);
   protected readonly attractors = ATTRACTORS;
   protected readonly qualities = QUALITIES;
+  protected readonly colorModes = COLOR_MODES;
   protected readonly preset = computed(() => findAttractor(this.store.attractorId()));
   protected readonly atDefaults = computed(() =>
     this.store.params().every((value, index) => value === this.preset().params[index].value),

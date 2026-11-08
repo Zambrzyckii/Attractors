@@ -15,6 +15,18 @@ export const QUALITIES: readonly QualityPreset[] = [
 ];
 
 export const DEFAULT_QUALITY = 'medium';
+
+export type ColorMode = 'speed' | 'lyapunov';
+
+export interface ColorModeOption {
+  id: ColorMode;
+  name: string;
+}
+
+export const COLOR_MODES: readonly ColorModeOption[] = [
+  { id: 'speed', name: 'Speed' },
+  { id: 'lyapunov', name: 'Lyapunov' },
+];
 const HIGH_REFRESH_RATE = 100;
 
 const ALL_QUALITIES = [TINY, ...QUALITIES];

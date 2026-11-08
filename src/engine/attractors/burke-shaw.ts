@@ -15,6 +15,7 @@ export const BURKE_SHAW: AttractorPreset = {
   centroid: [0, 0, 0.14],
   rmsRadius: 1.337,
   meanSpeed: 8.23,
+  ftleRange: [-0.35, 2.35],
   typicalSpeed: 8.2,
   timeScale: 0.72,
   maxStep: 0.003,

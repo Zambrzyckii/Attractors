@@ -2,6 +2,7 @@ import { LiveAttractor } from '../attractors/live-attractor';
 import { Program } from '../gl/program';
 import { RenderTarget } from '../gl/target';
 import { Mat4 } from '../math/mat4';
+import { ColorMode } from '../settings';
 import copyFrag from '../shaders/copy.frag.glsl';
 import fullscreenVert from '../shaders/fullscreen.vert.glsl';
 import { PresetPrograms } from './preset-programs';
@@ -55,7 +56,7 @@ export class SplatPass {
     this.written = this.frame;
   }
 
-  run(state: RenderTarget, attractor: LiveAttractor, view: SplatView): void {
+  run(state: RenderTarget, attractor: LiveAttractor, view: SplatView, colorMode: ColorMode): void {
     const gl = this.gl;
     const preset = attractor.preset;
     const program = this.programs.splat(preset);
@@ -63,6 +64,8 @@ export class SplatPass {
     program.use();
     gl.uniform1i(program.location('uState'), 0);
     gl.uniform1f(program.location('uTypicalSpeed'), attractor.typicalSpeed);
+    gl.uniform1i(program.location('uFtleColor'), colorMode === 'lyapunov' ? 1 : 0);
+    gl.uniform2f(program.location('uFtleRange'), ...preset.ftleRange);
     gl.uniform4fv(program.location('uParams'), attractor.params);
     const screenScale = (Math.min(this.frame.width, this.frame.height) / REFERENCE_SIDE) ** 2;
     const particleScale = REFERENCE_PARTICLES / count;

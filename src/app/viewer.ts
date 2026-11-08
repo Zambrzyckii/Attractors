@@ -89,6 +89,7 @@ export class Viewer {
           { injector },
         );
         effect(() => engine.setQuality(this.store.qualityId()), { injector });
+        effect(() => engine.setColorMode(this.store.colorMode()), { injector });
         const onKeyDown = (event: KeyboardEvent) => {
           if (event.code === 'KeyB') {
             engine.blowUpParticles();
