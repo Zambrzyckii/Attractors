@@ -4,6 +4,6 @@ uniform float uWeight;
 out vec4 outColor;
 
 void main() {
-  vec3 position = texelFetch(uState, ivec2(gl_FragCoord.xy), 0).xyz;
-  outColor = vec4(uWeight * length(deriv(position)), 0.0, 0.0, 0.0);
+  vec4 state = texelFetch(uState, ivec2(gl_FragCoord.xy), 0);
+  outColor = vec4(uWeight * length(deriv(state.xyz)), uWeight * state.w, 0.0, 0.0);
 }

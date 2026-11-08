@@ -1,6 +1,11 @@
 import { DecimalPipe } from '@angular/common';
-import { Component, inject, input, output } from '@angular/core';
+import { Component, computed, inject, input, output } from '@angular/core';
+import { LYAPUNOV_HISTORY_SAMPLES } from '../engine/lyapunov-estimate';
 import { ViewerStore } from './viewer-store';
+
+const SPARK_WIDTH = 160;
+const SPARK_HEIGHT = 32;
+const SPARK_PADDING = 2;
 
 @Component({
   selector: 'app-hud',
@@ -17,6 +22,26 @@ import { ViewerStore } from './viewer-store';
           <dd>
             {{ stats.exposure | number: '1.2-2' }}× (EV
             {{ log2(stats.exposure) | number: '1.2-2' }})
+          </dd>
+          <dt>Lyapunov λ₁</dt>
+          <dd>
+            @if (stats.lyapunov.estimate !== null) {
+              {{ stats.lyapunov.estimate | number: '1.3-3' }}
+            } @else {
+              <span class="measuring">measuring</span>
+            }
+            @if (sparkline(); as line) {
+              <svg
+                [class.settling]="stats.lyapunov.estimate === null"
+                [attr.viewBox]="'0 0 ' + sparkWidth + ' ' + sparkHeight"
+                [attr.width]="sparkWidth"
+                [attr.height]="sparkHeight"
+                aria-hidden="true"
+              >
+                <line x1="0" [attr.x2]="sparkWidth" [attr.y1]="line.zero" [attr.y2]="line.zero" />
+                <polyline [attr.points]="line.points" />
+              </svg>
+            }
           </dd>
         }
         <dt>Renderer</dt>
@@ -83,6 +108,23 @@ import { ViewerStore } from './viewer-store';
     dd {
       margin: 0;
     }
+    .measuring {
+      color: var(--muted);
+    }
+    svg {
+      display: block;
+      margin-top: 4px;
+    }
+    svg.settling {
+      opacity: 0.4;
+    }
+    line {
+      stroke: var(--line);
+    }
+    polyline {
+      fill: none;
+      stroke: var(--fg);
+    }
     button {
       padding: 6px 12px;
       border: 1px solid var(--line);
@@ -116,4 +158,22 @@ export class Hud {
   readonly benchmark = output();
   protected readonly store = inject(ViewerStore);
   protected readonly log2 = Math.log2;
+  protected readonly sparkWidth = SPARK_WIDTH;
+  protected readonly sparkHeight = SPARK_HEIGHT;
+  protected readonly sparkline = computed(() => {
+    const history = this.store.stats()?.lyapunov.history ?? [];
+    if (history.length < 2) {
+      return null;
+    }
+    const low = Math.min(0, ...history);
+    const span = Math.max(0, ...history) - low || 1;
+    const y = (value: number) =>
+      SPARK_PADDING + (1 - (value - low) / span) * (SPARK_HEIGHT - 2 * SPARK_PADDING);
+    const step = SPARK_WIDTH / (LYAPUNOV_HISTORY_SAMPLES - 1);
+    const offset = SPARK_WIDTH - (history.length - 1) * step;
+    return {
+      points: history.map((value, index) => `${offset + index * step},${y(value)}`).join(' '),
+      zero: y(0),
+    };
+  });
 }

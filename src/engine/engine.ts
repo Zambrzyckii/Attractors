@@ -5,6 +5,7 @@ import { FrameClock, smoothing } from './frame-clock';
 import { createGlContext, GlCaps } from './gl/context';
 import { PingPong } from './gl/ping-pong';
 import { OrbitControls } from './input/orbit-controls';
+import { LyapunovEstimate, LyapunovReading } from './lyapunov-estimate';
 import { OrbitCamera } from './math/orbit-camera';
 import { AccumulatePass } from './passes/accumulate';
 import { BloomPass } from './passes/bloom';
@@ -22,6 +23,7 @@ export interface EngineStats {
   fps: number;
   particles: number;
   exposure: number;
+  lyapunov: LyapunovReading;
 }
 
 export interface BenchmarkRow {
@@ -73,6 +75,7 @@ export class AttractorEngine {
   private readonly bloom: BloomPass;
   private readonly meter: ExposureMeter;
   private readonly stats: StatsPass;
+  private readonly lyapunov = new LyapunovEstimate();
   private readonly composite: CompositePass;
   private readonly blowUp: BlowUpPass;
   private history: PingPong;
@@ -156,6 +159,7 @@ export class AttractorEngine {
     }
     this.attractor = new LiveAttractor(preset);
     this.stats.invalidate();
+    this.lyapunov.restart();
     this.reseed();
   }
 
@@ -217,7 +221,11 @@ export class AttractorEngine {
     this.applyPendingSize();
     this.controls.update(dt);
     const exposure = this.meter.update(dt);
-    this.attractor.follow(this.stats.poll(), dt);
+    const particleStats = this.stats.poll();
+    if (particleStats) {
+      this.lyapunov.observe(particleStats.meanFtle);
+    }
+    this.attractor.follow(particleStats, dt);
     this.frameCamera();
     this.render(dt, exposure);
     this.reportStats(dt, exposure);
@@ -344,11 +352,13 @@ export class AttractorEngine {
     this.frameSeconds += (dt - this.frameSeconds) * smoothing(dt, 0.5);
     this.sinceStats += dt;
     if (this.sinceStats >= STATS_INTERVAL_SECONDS) {
+      const lyapunov = this.lyapunov.sample(this.sinceStats, this.attractor.gliding);
       this.sinceStats = 0;
       this.statsListener?.({
         fps: 1 / this.frameSeconds,
         particles: this.quality.width * this.quality.height,
         exposure,
+        lyapunov,
       });
     }
   }

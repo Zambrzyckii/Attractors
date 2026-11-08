@@ -49,6 +49,10 @@ export class LiveAttractor {
     return SHADOW_DISTANCE * this.preset.halfExtent;
   }
 
+  get gliding(): boolean {
+    return this.glideProgress.some((progress) => progress < 1);
+  }
+
   setParam(name: string, value: number): void {
     const index = this.preset.params.findIndex((param) => param.name === name);
     if (index < 0) {

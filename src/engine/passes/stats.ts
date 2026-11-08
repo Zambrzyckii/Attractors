@@ -12,7 +12,11 @@ export interface ParticleStats {
   centroid: Vec3;
   rmsRadius: number;
   meanSpeed: number;
+  meanFtle: number;
 }
+
+type Shape = Pick<ParticleStats, 'centroid' | 'rmsRadius'>;
+type Motion = Pick<ParticleStats, 'meanSpeed' | 'meanFtle'>;
 
 const MEASURE_EVERY = 4;
 
@@ -23,8 +27,8 @@ export class StatsPass {
   private speedReadback: Readback;
   private map: RenderTarget | null = null;
   private origin: Vec3 = [0, 0, 0];
-  private shape: Omit<ParticleStats, 'meanSpeed'> | null = null;
-  private meanSpeed: number | null = null;
+  private shape: Shape | null = null;
+  private motion: Motion | null = null;
   private frames = 0;
 
   constructor(
@@ -79,12 +83,12 @@ export class StatsPass {
     }
     const speed = this.speedReadback.poll();
     if (speed) {
-      this.meanSpeed = speed[0];
+      this.motion = { meanSpeed: speed[0], meanFtle: speed[1] };
     }
-    if ((!shape && !speed) || !this.shape || this.meanSpeed === null) {
+    if ((!shape && !speed) || !this.shape || !this.motion) {
       return null;
     }
-    return { ...this.shape, meanSpeed: this.meanSpeed };
+    return { ...this.shape, ...this.motion };
   }
 
   invalidate(): void {
@@ -93,7 +97,7 @@ export class StatsPass {
     this.shapeReadback = new Readback(this.gl);
     this.speedReadback = new Readback(this.gl);
     this.shape = null;
-    this.meanSpeed = null;
+    this.motion = null;
   }
 
   dispose(): void {
