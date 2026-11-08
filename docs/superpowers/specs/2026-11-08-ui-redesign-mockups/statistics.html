@@ -1,0 +1,253 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Statistics page</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,300;1,6..72,300;1,6..72,400&family=Spline+Sans+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root { color-scheme: dark; --ink: #ece6d6; --mute: #a49f92; --dim: #8d897e; --gold: #e8c88a; --order: #7fa3d6; --chaos: #e9a65e; --hair: rgb(236 230 214 / .14); }
+  body { margin: 0; background: #080a0a; color: #e6e9e7; font: 17px/1.5 system-ui, sans-serif; }
+  .page { max-width: 1180px; margin: 0 auto; padding: 32px 16px 80px; }
+  .page > h1 { font-size: 26px; margin: 0 0 4px; font-weight: 600; }
+  .page > p { margin: 0 0 32px; color: #9aa4a0; }
+  .dir { margin: 0 0 56px; cursor: pointer; }
+  .dir header { display: flex; align-items: baseline; gap: 14px; margin-bottom: 10px; flex-wrap: wrap; }
+  .dir header b { font-size: 20px; }
+  .dir header span { color: #9aa4a0; font-size: 15px; }
+  .dir.selected .frame { outline: 3px solid #e6e9e7; outline-offset: 4px; }
+  .frame { position: relative; aspect-ratio: 16 / 9; overflow: hidden; border-radius: 6px; background: #0b0d0c; font-family: 'Spline Sans Mono', monospace; color: var(--ink); font-size: 13px; }
+  .frame * { box-sizing: border-box; }
+  .frame svg text { font-family: 'Spline Sans Mono', monospace; }
+  .mark { position: absolute; left: 30px; top: 22px; font: italic 300 22px 'Newsreader', serif; color: var(--mute); }
+  nav { position: absolute; top: 24px; right: 26px; display: flex; gap: 22px; font-size: 14px; color: var(--mute); }
+  nav .on { color: var(--ink); border-bottom: 1px solid var(--gold); padding-bottom: 2px; }
+  .k { color: var(--dim); }
+  .new { color: var(--gold); font-size: 12px; border: 1px solid rgb(232 200 138 / .4); border-radius: 3px; padding: 0 5px; margin-left: 6px; }
+  h3 { margin: 0 0 8px; font: italic 300 22px 'Newsreader', serif; color: var(--ink); }
+  .row { display: flex; justify-content: space-between; gap: 12px; padding: 3px 0; border-bottom: 1px solid var(--hair); }
+  .row span:last-child { color: var(--ink); }
+  .row .k { flex: 1; }
+
+  /* 1: figure stays */
+  .s1 .fig { position: absolute; right: -60px; top: 40px; bottom: 0; width: 62%; background: url(../../../lorenz-speed.jpg) center / cover no-repeat;
+    -webkit-mask: linear-gradient(90deg, transparent, #000 30%); mask: linear-gradient(90deg, transparent, #000 30%); }
+  .s1 .col { position: absolute; left: 30px; top: 70px; bottom: 24px; width: 470px; display: grid; grid-template-rows: auto auto 1fr; gap: 18px; }
+  .s1 .title { font: italic 300 46px/1 'Newsreader', serif; }
+  .s1 .title small { font: 400 13px 'Spline Sans Mono'; color: var(--dim); margin-left: 12px; }
+  .s1 .lam { display: flex; align-items: baseline; gap: 14px; }
+  .s1 .lam b { font: italic 300 52px/1 'Newsreader', serif; color: var(--gold); white-space: nowrap; }
+  .s1 .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 28px; align-content: start; }
+  .s1 .grid2 h3 { grid-column: span 1; font-size: 19px; margin: 6px 0 2px; }
+
+  /* 2: report */
+  .s2 { background: #0b0d0c url(../../../lorenz-speed.jpg) center / cover no-repeat; }
+  .s2::before { content: ''; position: absolute; inset: 0; background: rgb(9 11 11 / .86); backdrop-filter: blur(6px); }
+  .s2 .doc { position: absolute; left: 80px; right: 80px; top: 70px; bottom: 20px; display: grid; grid-template-columns: 1.15fr 1fr; gap: 36px; }
+  .s2 .h { font: italic 300 40px/1 'Newsreader', serif; margin-bottom: 6px; }
+  .s2 .lede { font: italic 300 17px/1.45 'Newsreader', serif; color: var(--mute); margin: 0 0 14px; }
+  .s2 .lede b { font: 500 14px 'Spline Sans Mono'; font-style: normal; color: var(--gold); }
+  .s2 figure { margin: 0 0 12px; }
+  .s2 figcaption { font: italic 400 14px 'Newsreader', serif; color: var(--dim); margin-top: 2px; }
+  .s2 table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .s2 th { text-align: right; font-weight: 400; color: var(--dim); padding: 3px 4px; border-bottom: 1px solid var(--hair); }
+  .s2 th:first-child, .s2 td:first-child { text-align: left; }
+  .s2 td { text-align: right; padding: 3px 4px; }
+  .s2 tr.cur td { color: var(--gold); }
+  .s2 .btn { display: inline-block; margin-top: 8px; border: 1px solid rgb(232 200 138 / .5); color: var(--gold); padding: 3px 10px; border-radius: 3px; font-size: 12px; }
+
+  /* 3: recorder */
+  .s3 .fig { position: absolute; right: 26px; top: 64px; width: 230px; height: 150px; background: url(../../../lorenz-speed.jpg) center / 190% no-repeat; border-radius: 4px;
+    -webkit-mask: radial-gradient(closest-side, #000 65%, transparent); mask: radial-gradient(closest-side, #000 65%, transparent); }
+  .s3 .chan { position: absolute; left: 30px; top: 70px; }
+  .s3 .side { position: absolute; right: 26px; top: 230px; width: 240px; }
+  .s3 .side h3 { font-size: 19px; }
+  .s3 .axis { position: absolute; left: 196px; right: 290px; bottom: 20px; display: flex; justify-content: space-between; color: var(--dim); font-size: 12px; }
+</style>
+</head>
+<body>
+<div class="page">
+  <h1>Statistics page, three variants</h1>
+  <p>Numbers are the Lorenz reference values from the preset and the README benchmark. Items marked new need extra engine work, everything else the engine already measures. Click one and tell me in the terminal what to keep.</p>
+
+  <section class="dir" data-choice="figure-stays">
+    <header><b>1. The figure stays</b><span>The live attractor slides to the right half and keeps running. On the left, λ₁ with its long history, then shape, motion and rendering as quiet two-column lists.</span></header>
+    <div class="frame s1">
+      <div class="fig"></div>
+      <div class="mark">Attractors</div>
+      <nav><span>Viewer</span><span class="on">Statistics</span></nav>
+      <div class="col">
+        <div class="title">Lorenz<small>σ 10 · ρ 28 · β 2.667</small></div>
+        <div>
+          <div class="lam"><b>λ₁ 0.905</b><span class="k">largest Lyapunov exponent, 10 s mean</span></div>
+          <svg id="s1-trace" width="470" height="86"></svg>
+        </div>
+        <div class="grid2">
+          <div><h3>Shape</h3>
+            <div class="row"><span class="k">centroid x</span><span>0.00</span></div>
+            <div class="row"><span class="k">centroid y</span><span>0.00</span></div>
+            <div class="row"><span class="k">centroid z</span><span>23.55</span></div>
+            <div class="row"><span class="k">rms radius</span><span>14.78</span></div>
+          </div>
+          <div><h3>Motion</h3>
+            <div class="row"><span class="k">mean speed</span><span>95.7</span></div>
+            <div class="row"><span class="k">time scale</span><span>0.72</span></div>
+            <div class="row"><span class="k">max step</span><span>0.004</span></div>
+            <div class="row"><span class="k">state</span><span>settled</span></div>
+          </div>
+          <div><h3>Rendering</h3>
+            <div class="row"><span class="k">frame rate</span><span>144 fps</span></div>
+            <div class="row"><span class="k">particles</span><span>1 048 576</span></div>
+            <div class="row"><span class="k">exposure</span><span>1.84× EV 0.88</span></div>
+          </div>
+          <div><h3>Device</h3>
+            <div class="row"><span class="k">renderer</span><span>GTX 980 class</span></div>
+            <div class="row"><span class="k">quality</span><span>Medium</span></div>
+            <div class="row"><span class="k">benchmark</span><span style="color:var(--gold)">Run</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="dir" data-choice="report">
+    <header><b>2. Report</b><span>The figure blurs behind a typeset page. Left, the chaos measurements with figures and captions, including the FTLE distribution. Right, the benchmark and device tables.</span></header>
+    <div class="frame s2">
+      <div class="mark">Attractors</div>
+      <nav><span>Viewer</span><span class="on">Statistics</span></nav>
+      <div class="doc">
+        <div>
+          <div class="h">Lorenz</div>
+          <p class="lede">At σ <b>10</b>, ρ <b>28</b>, β <b>2.667</b> nearby paths separate at λ₁ = <b>0.905</b> per unit of time. The cloud is centred at z <b>23.55</b> with an rms radius of <b>14.78</b>, and particles move at <b>95.7</b> on average.</p>
+          <figure><svg id="s2-trace" width="520" height="92"></svg><figcaption>Fig. 1. λ₁ over the last 60 s. The shaded part is the 25 s settling time.</figcaption></figure>
+          <figure><svg id="s2-hist" width="520" height="92"></svg><figcaption>Fig. 2. Finite-time exponent of every particle, blue converging, orange diverging. <span class="new">new</span></figcaption></figure>
+        </div>
+        <div>
+          <h3>Benchmark</h3>
+          <table>
+            <tr><th>Quality</th><th>Particles</th><th>Frame</th><th>Simulate</th><th>Splat</th><th>Bloom</th></tr>
+            <tr><td>Low</td><td>262 144</td><td>1.38</td><td>0.08</td><td>0.92</td><td>0.19</td></tr>
+            <tr class="cur"><td>Medium</td><td>1 048 576</td><td>4.22</td><td>0.27</td><td>3.43</td><td>0.20</td></tr>
+            <tr><td>High</td><td>2 097 152</td><td>8.21</td><td>0.55</td><td>8.37</td><td>0.20</td></tr>
+            <tr><td>Ultra</td><td>4 194 304</td><td>16.21</td><td>1.13</td><td>16.57</td><td>0.18</td></tr>
+          </table>
+          <span class="btn">Run benchmark</span>
+          <h3 style="margin-top:18px">Device</h3>
+          <div class="row"><span class="k">renderer</span><span>GTX 980 class</span></div>
+          <div class="row"><span class="k">max texture</span><span>32768</span></div>
+          <div class="row"><span class="k">float blending</span><span>yes</span></div>
+          <div class="row"><span class="k">frame rate</span><span>144 fps</span></div>
+          <div class="row"><span class="k">exposure</span><span>1.84× EV 0.88</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="dir" data-choice="recorder">
+    <header><b>3. Chart recorder</b><span>Four channels on one shared time axis, all scrolling together like a multichannel recorder. A small live figure and the static facts sit on the right.</span></header>
+    <div class="frame s3">
+      <div class="mark">Attractors</div>
+      <nav><span>Viewer</span><span class="on">Statistics</span></nav>
+      <div class="fig"></div>
+      <svg class="chan" id="s3-chan"></svg>
+      <div class="axis"><span>−60 s</span><span>−45 s</span><span>−30 s</span><span>−15 s</span><span>now</span></div>
+      <div class="side">
+        <h3>Lorenz</h3>
+        <div class="row"><span class="k">σ ρ β</span><span>10 · 28 · 2.667</span></div>
+        <div class="row"><span class="k">centroid</span><span>0, 0, 23.55</span></div>
+        <div class="row"><span class="k">particles</span><span>1 048 576</span></div>
+        <div class="row"><span class="k">exposure</span><span>EV 0.88</span></div>
+        <div class="row"><span class="k">renderer</span><span>GTX 980 class</span></div>
+        <div class="row"><span class="k">benchmark</span><span style="color:var(--gold)">Run</span></div>
+      </div>
+    </div>
+  </section>
+</div>
+<script>
+const NS = 'http://www.w3.org/2000/svg';
+const el = (parent, tag, attrs, text) => {
+  const node = document.createElementNS(NS, tag);
+  for (const [k, v] of Object.entries(attrs)) node.setAttribute(k, v);
+  if (text !== undefined) node.textContent = text;
+  parent.appendChild(node);
+  return node;
+};
+let seed = 11;
+const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+const series = (n, target, settle, wobble, noise) => Array.from({ length: n }, (_, i) => {
+  const t = i / (n - 1), s = Math.exp(-t * settle);
+  return target + s * Math.sin(t * 30) * wobble + (rnd() - 0.5) * noise;
+});
+const plot = (svg, values, lo, hi, x0, y0, w, h, color, width = 1.2) => {
+  const pts = values.map((v, i) => `${(x0 + (i / (values.length - 1)) * w).toFixed(1)},${(y0 + h - ((v - lo) / (hi - lo)) * h).toFixed(1)}`);
+  el(svg, 'polyline', { points: pts.join(' '), fill: 'none', stroke: color, 'stroke-width': width, 'stroke-linejoin': 'round' });
+  return pts;
+};
+const lam = series(240, 0.905, 4, 0.5, 0.05);
+
+(function s1() {
+  const svg = document.getElementById('s1-trace');
+  const W = 470, H = 86, lo = -0.4, hi = 1.6, y = v => H - 16 - ((v - lo) / (hi - lo)) * (H - 22);
+  el(svg, 'line', { x1: 0, x2: W - 60, y1: y(0), y2: y(0), stroke: 'rgb(236 230 214 / .25)', 'stroke-dasharray': '2 5' });
+  el(svg, 'text', { x: W - 54, y: y(0) + 4, fill: '#8d897e', 'font-size': 12 }, '0');
+  el(svg, 'text', { x: W - 54, y: y(0.905) + 4, fill: '#e8c88a', 'font-size': 12 }, '0.905');
+  plot(svg, lam, lo, hi, 0, 6, W - 62, H - 22, '#e8c88a');
+  el(svg, 'text', { x: 0, y: H - 2, fill: '#8d897e', 'font-size': 12 }, '60 s ago');
+  el(svg, 'text', { x: W - 62, y: H - 2, fill: '#8d897e', 'font-size': 12, 'text-anchor': 'end' }, 'now');
+})();
+
+(function s2() {
+  const t = document.getElementById('s2-trace');
+  const W = 520, H = 92, lo = -0.4, hi = 1.6;
+  el(t, 'rect', { x: 0, y: 0, width: W * 25 / 60, height: H - 14, fill: 'rgb(236 230 214 / .05)' });
+  const y = v => H - 14 - ((v - lo) / (hi - lo)) * (H - 18);
+  el(t, 'line', { x1: 0, x2: W, y1: y(0), y2: y(0), stroke: 'rgb(236 230 214 / .25)', 'stroke-dasharray': '2 5' });
+  plot(t, lam, lo, hi, 0, 4, W, H - 18, '#e8c88a');
+  el(t, 'text', { x: 4, y: H - 2, fill: '#8d897e', 'font-size': 12 }, 'settling');
+  el(t, 'text', { x: W, y: H - 2, fill: '#8d897e', 'font-size': 12, 'text-anchor': 'end' }, 'now');
+
+  const h = document.getElementById('s2-hist');
+  const lo2 = -0.33, hi2 = 3.3, bins = 48, bw = W / bins, x = v => ((v - lo2) / (hi2 - lo2)) * W;
+  for (let i = 0; i < bins; i++) {
+    const c = lo2 + (i + 0.5) * (hi2 - lo2) / bins;
+    const d = Math.exp(-((c - 0.7) ** 2) / 0.35) + 0.25 * Math.exp(-((c - 2.1) ** 2) / 0.5) + 0.03;
+    const bh = d * (H - 22);
+    el(h, 'rect', { x: i * bw + 1, y: H - 16 - bh, width: bw - 2, height: bh, fill: c < 0 ? '#7fa3d6' : '#e9a65e', opacity: .75 });
+  }
+  el(h, 'line', { x1: x(0), x2: x(0), y1: 0, y2: H - 16, stroke: 'rgb(236 230 214 / .4)' });
+  el(h, 'line', { x1: x(0.905), x2: x(0.905), y1: 0, y2: H - 16, stroke: '#e8c88a', 'stroke-dasharray': '3 3' });
+  el(h, 'text', { x: x(0.905) + 5, y: 10, fill: '#e8c88a', 'font-size': 12 }, 'mean 0.905');
+  for (const v of [0, 1, 2, 3]) el(h, 'text', { x: x(v), y: H - 2, fill: '#8d897e', 'font-size': 12, 'text-anchor': 'middle' }, String(v));
+})();
+
+(function s3() {
+  const svg = document.getElementById('s3-chan');
+  const frame = svg.parentElement.getBoundingClientRect();
+  const W = Math.round(frame.width - 30 - 290), H = Math.round(frame.height - 70 - 44);
+  svg.setAttribute('width', W); svg.setAttribute('height', H);
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  const label = 166, lane = H / 4;
+  const chans = [
+    { name: 'λ₁', unit: 'per time', v: '0.905', data: lam, lo: -0.4, hi: 1.6, zero: true },
+    { name: 'mean speed', unit: '', v: '95.7', data: series(240, 95.7, 4, 30, 6), lo: 40, hi: 140 },
+    { name: 'rms radius', unit: '', v: '14.78', data: series(240, 14.78, 6, 4, 0.4), lo: 8, hi: 20 },
+    { name: 'frame rate', unit: 'fps', v: '144', data: series(240, 144, 0, 0, 3).map((v, i) => (i === 150 || i === 151 ? 96 : v)), lo: 60, hi: 160 },
+  ];
+  chans.forEach((c, i) => {
+    const top = i * lane + 6, h = lane - 18;
+    el(svg, 'line', { x1: 0, x2: W, y1: top + h + 8, y2: top + h + 8, stroke: 'rgb(236 230 214 / .1)' });
+    el(svg, 'text', { x: 0, y: top + 16, fill: '#ece6d6', style: "font: italic 300 19px 'Newsreader', serif" }, c.name);
+    el(svg, 'text', { x: 0, y: top + 40, fill: i === 0 ? '#e8c88a' : '#ece6d6', 'font-size': 18 }, c.v);
+    if (c.unit) el(svg, 'text', { x: 0, y: top + 58, fill: '#8d897e', 'font-size': 12 }, c.unit);
+    if (c.zero) {
+      const y0 = top + h - ((0 - c.lo) / (c.hi - c.lo)) * h;
+      el(svg, 'line', { x1: label, x2: W, y1: y0, y2: y0, stroke: 'rgb(236 230 214 / .25)', 'stroke-dasharray': '2 5' });
+    }
+    plot(svg, c.data, c.lo, c.hi, label, top, W - label, h, i === 0 ? '#e8c88a' : 'rgb(236 230 214 / .75)');
+  });
+})();
+</script>
+</body>
+</html>

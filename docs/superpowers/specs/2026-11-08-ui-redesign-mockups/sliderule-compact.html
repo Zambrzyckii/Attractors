@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Slide rule compact</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,300;1,6..72,300;1,6..72,400&family=Spline+Sans+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root { color-scheme: dark; --ink: #ece6d6; --mute: #a49f92; --dim: #8d897e; --gold: #e8c88a; }
+  body { margin: 0; background: #080a0a; color: #e6e9e7; font: 17px/1.5 system-ui, sans-serif; }
+  .page { max-width: 1180px; margin: 0 auto; padding: 32px 16px 80px; }
+  .page > h1 { font-size: 26px; margin: 0 0 4px; font-weight: 600; }
+  .page > p { margin: 0 0 32px; color: #9aa4a0; }
+  .dir { margin: 0 0 56px; cursor: pointer; }
+  .dir header { display: flex; align-items: baseline; gap: 14px; margin-bottom: 10px; flex-wrap: wrap; }
+  .dir header b { font-size: 20px; }
+  .dir header span { color: #9aa4a0; font-size: 15px; }
+  .dir.selected .frame { outline: 3px solid #e6e9e7; outline-offset: 4px; }
+  .frame { position: relative; aspect-ratio: 16 / 9; overflow: hidden; border-radius: 6px; font-family: 'Spline Sans Mono', monospace; color: var(--ink);
+    background: #0b0e0d url(../../../lorenz-speed.jpg) center / cover no-repeat; }
+  .frame * { box-sizing: border-box; }
+  .frame svg text { font-family: 'Spline Sans Mono', monospace; }
+
+  .title { position: absolute; left: 30px; top: 18px; font: italic 300 54px/1 'Newsreader', serif; letter-spacing: -.01em; }
+  .names { position: absolute; left: 32px; top: 84px; display: flex; gap: 18px; font: italic 400 20px 'Newsreader', serif; color: var(--dim); }
+  .names .on { color: var(--gold); }
+  nav { position: absolute; top: 22px; right: 26px; display: flex; gap: 22px; font-size: 14px; color: var(--mute); }
+  nav .on { color: var(--ink); border-bottom: 1px solid var(--gold); padding-bottom: 2px; }
+  .toggles { position: absolute; right: 26px; top: 70px; display: grid; gap: 8px; justify-items: end; font-size: 14px; color: var(--dim); }
+  .toggles .on { color: var(--ink); }
+
+  .rules { position: absolute; left: 32px; bottom: 78px; display: grid; gap: 2px; }
+  .rr { display: grid; grid-template-columns: 22px 250px 60px; align-items: center; gap: 8px; }
+  .rr .s { font: italic 300 22px 'Newsreader', serif; color: var(--dim); }
+  .rr .v { font: 500 14px 'Spline Sans Mono'; text-align: right; }
+  .win { position: relative; height: 34px; overflow: hidden;
+    -webkit-mask: linear-gradient(90deg, transparent, #000 22%, #000 78%, transparent); mask: linear-gradient(90deg, transparent, #000 22%, #000 78%, transparent); }
+  .win svg { position: absolute; top: 0; left: 0; }
+  .cursor { position: absolute; left: 50%; top: 2px; bottom: 2px; width: 2px; margin-left: -1px; background: var(--gold); box-shadow: 0 0 8px rgb(232 200 138 / .7); }
+  .seis { position: absolute; left: 0; right: 0; bottom: 0; height: 56px; }
+  .meta { position: absolute; right: 30px; bottom: 62px; font-size: 13px; color: var(--dim); }
+
+  .chips { position: absolute; left: 32px; bottom: 74px; display: flex; gap: 22px; align-items: baseline; }
+  .chip { display: flex; gap: 8px; align-items: baseline; cursor: ew-resize; padding-bottom: 3px; border-bottom: 1px dashed rgb(236 230 214 / .25); }
+  .chip .s { font: italic 300 22px 'Newsreader', serif; color: var(--dim); }
+  .chip .v { font: 500 14px 'Spline Sans Mono'; }
+  .chip.on { border-bottom-color: var(--gold); }
+  .chip.on .v { color: var(--gold); }
+  .pop { position: absolute; left: 100px; bottom: 112px; width: 300px; padding: 4px 0; }
+  .pop .win { height: 40px; }
+  .pop em { position: absolute; left: 0; right: 0; top: -14px; text-align: center; font: italic 400 13px 'Newsreader', serif; color: var(--dim); }
+</style>
+</head>
+<body>
+<div class="page">
+  <h1>Slide rule, compact</h1>
+  <p>Both keep the figure clear. Click one and tell me in the terminal which feels right.</p>
+
+  <section class="dir" data-choice="compact-always">
+    <header><b>3a. Small rules, always visible</b><span>All three rules at about half the earlier size, tucked into the free corner left of the figure. The trace is a thin strip on the bottom edge.</span></header>
+    <div class="frame" id="fa">
+      <div class="title">Lorenz</div>
+      <div class="names"><span class="on">Lorenz</span><span>Aizawa</span><span>Halvorsen</span><span>Burke-Shaw</span></div>
+      <nav><span class="on">Viewer</span><span>Statistics</span></nav>
+      <div class="toggles"><span><span class="on">speed</span> / lyapunov</span><span>low / <span class="on">medium</span> / high / ultra</span></div>
+      <div class="rules">
+        <div class="rr"><span class="s">σ</span><div class="win"><svg data-rule="sigma" height="34"></svg><i class="cursor"></i></div><span class="v">10.00</span></div>
+        <div class="rr"><span class="s">ρ</span><div class="win"><svg data-rule="rho" height="34"></svg><i class="cursor"></i></div><span class="v">28.00</span></div>
+        <div class="rr"><span class="s">β</span><div class="win"><svg data-rule="beta" height="34"></svg><i class="cursor"></i></div><span class="v">2.667</span></div>
+      </div>
+      <div class="meta">1 048 576 particles · 144 fps</div>
+      <svg class="seis" preserveAspectRatio="none"></svg>
+    </div>
+  </section>
+
+  <section class="dir" data-choice="compact-on-demand">
+    <header><b>3b. Values only, rule on demand</b><span>At rest you see one line of values. Pressing or dragging a value opens its rule just above it, shown here open for ρ.</span></header>
+    <div class="frame" id="fb">
+      <div class="title">Lorenz</div>
+      <div class="names"><span class="on">Lorenz</span><span>Aizawa</span><span>Halvorsen</span><span>Burke-Shaw</span></div>
+      <nav><span class="on">Viewer</span><span>Statistics</span></nav>
+      <div class="toggles"><span><span class="on">speed</span> / lyapunov</span><span>low / <span class="on">medium</span> / high / ultra</span></div>
+      <div class="pop"><em>drag the scale, or use arrow keys</em><div class="win"><svg data-rule="rho" data-h="40" height="40"></svg><i class="cursor"></i></div></div>
+      <div class="chips">
+        <span class="chip"><span class="s">σ</span><span class="v">10.00</span></span>
+        <span class="chip on"><span class="s">ρ</span><span class="v">28.00</span></span>
+        <span class="chip"><span class="s">β</span><span class="v">2.667</span></span>
+      </div>
+      <div class="meta">1 048 576 particles · 144 fps</div>
+      <svg class="seis" preserveAspectRatio="none"></svg>
+    </div>
+  </section>
+</div>
+<script>
+const NS = 'http://www.w3.org/2000/svg';
+const el = (parent, tag, attrs, text) => {
+  const node = document.createElementNS(NS, tag);
+  for (const [k, v] of Object.entries(attrs)) node.setAttribute(k, v);
+  if (text !== undefined) node.textContent = text;
+  parent.appendChild(node);
+  return node;
+};
+const logFrac = (v, lo, hi) => Math.log(v / lo) / Math.log(hi / lo);
+const linFrac = (v, lo, hi) => (v - lo) / (hi - lo);
+const range = (a, b, s) => { const out = []; for (let v = a; v <= b + 1e-9; v += s) out.push(+v.toFixed(3)); return out; };
+const rhoMinor = [];
+for (const d of [0.1, 1, 10, 100]) for (let k = 1; k < 10; k++) { const v = k * d; if (v >= 0.5 && v <= 160) rhoMinor.push(v); }
+const RULES = {
+  sigma: { lo: 4, hi: 20, value: 10, frac: linFrac, labels: range(4, 20, 2), minors: range(4, 20, 0.5) },
+  rho: { lo: 0.5, hi: 160, value: 28, frac: logFrac, labels: [0.5, 1, 2, 5, 10, 20, 50, 100], minors: rhoMinor,
+    marks: [{ v: 1, t: 'origin unstable' }, { v: 13.93, t: 'homoclinic' }, { v: 24.74, t: 'Hopf' }, { v: 99.65, t: 'periodic' }] },
+  beta: { lo: 0.5, hi: 4, value: 8 / 3, frac: linFrac, labels: range(0.5, 4, 0.5), minors: range(0.5, 4, 0.1) },
+};
+
+for (const svg of document.querySelectorAll('svg[data-rule]')) {
+  const r = RULES[svg.dataset.rule];
+  const W = svg.parentElement.getBoundingClientRect().width, H = +svg.getAttribute('height'), span = 1100;
+  const base = H * 0.36, label = H - 3;
+  svg.setAttribute('width', span + W); svg.setAttribute('viewBox', `0 0 ${span + W} ${H}`);
+  const x = v => W / 2 + r.frac(v, r.lo, r.hi) * span;
+  svg.style.transform = `translateX(${-(x(r.value) - W / 2)}px)`;
+  el(svg, 'line', { x1: x(r.lo), y1: base, x2: x(r.hi), y2: base, stroke: 'rgb(236 230 214 / .3)' });
+  for (const v of r.minors) el(svg, 'line', { x1: x(v), y1: base, x2: x(v), y2: base + 4, stroke: 'rgb(236 230 214 / .35)' });
+  for (const v of r.labels) {
+    el(svg, 'line', { x1: x(v), y1: base, x2: x(v), y2: base + 8, stroke: 'rgb(236 230 214 / .7)' });
+    el(svg, 'text', { x: x(v), y: label, 'text-anchor': 'middle', fill: '#a49f92', style: "font: italic 300 13px 'Newsreader', serif" }, String(v));
+  }
+  for (const m of r.marks ?? []) {
+    el(svg, 'path', { d: `M${x(m.v) - 4},${base - 9} L${x(m.v) + 4},${base - 9} L${x(m.v)},${base - 2} Z`, fill: '#e8c88a', opacity: .9 });
+    if (H >= 40) el(svg, 'text', { x: x(m.v) + 7, y: base - 3, fill: '#8d897e', style: "font: italic 400 12px 'Newsreader', serif" }, m.t);
+  }
+}
+
+for (const s of document.querySelectorAll('svg.seis')) {
+  const SW = Math.round(s.parentElement.getBoundingClientRect().width), SH = 56;
+  s.setAttribute('viewBox', `0 0 ${SW} ${SH}`);
+  const y = v => 44 - v * 26;
+  const head = SW - 170;
+  el(s, 'line', { x1: 0, y1: y(0), x2: head, y2: y(0), stroke: 'rgb(236 230 214 / .18)', 'stroke-dasharray': '2 5' });
+  let seed = 7;
+  const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  const pts = [];
+  for (let i = 0; i <= 240; i++) {
+    const t = i / 240, settle = Math.exp(-t * 5);
+    const v = 0.905 + settle * (Math.sin(t * 40) * 0.5 - 0.3) + (rnd() - 0.5) * 0.1 * (0.3 + settle);
+    pts.push(`${(t * head).toFixed(1)},${y(v).toFixed(1)}`);
+  }
+  el(s, 'polyline', { points: pts.join(' '), fill: 'none', stroke: '#e8c88a', 'stroke-width': 1.1, opacity: .8, 'stroke-linejoin': 'round' });
+  el(s, 'circle', { cx: head, cy: y(0.905), r: 3, fill: '#e8c88a' });
+  el(s, 'text', { x: head + 12, y: y(0.905) + 9, fill: '#ece6d6', style: "font: italic 300 28px 'Newsreader', serif" }, 'λ₁ 0.905');
+}
+</script>
+</body>
+</html>
