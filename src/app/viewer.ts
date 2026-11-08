@@ -15,17 +15,19 @@ import { measureRefreshRate } from '../engine/frame-clock';
 import { defaultQualityFor } from '../engine/settings';
 import { Hud } from './hud';
 import { ParamLine } from './param-line';
+import { Seismograph } from './seismograph';
 import { ViewerHeader } from './viewer-header';
 import { ViewerStore } from './viewer-store';
 
 @Component({
   selector: 'app-viewer',
-  imports: [Hud, ParamLine, ViewerHeader],
+  imports: [Hud, ParamLine, Seismograph, ViewerHeader],
   template: `
     <canvas #canvas></canvas>
     @if (!store.uiHidden()) {
       <app-viewer-header />
       <app-param-line />
+      <app-seismograph />
       @if (renderer(); as renderer) {
         <app-hud [renderer]="renderer" (benchmark)="runBenchmark()" />
       }
