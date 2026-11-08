@@ -11,8 +11,7 @@ const LABEL_Y = 37;
 const MARK_HALF = 4;
 const MARK_TOP = 9;
 const MARK_TIP = 2;
-const TITLE_GAP = 7;
-const TITLE_RISE = 3;
+const TITLE_REACH = 84;
 
 @Component({
   selector: 'app-slide-rule',
@@ -52,18 +51,21 @@ const TITLE_RISE = 3;
           <text [attr.x]="tick.x" [attr.y]="labelY">{{ tick.label }}</text>
         }
         <g class="marks" [class.dimmed]="marksDimmed()">
-          @for (mark of marks(); track mark.x; let index = $index) {
+          @for (mark of marks(); track mark.x) {
             <path [attr.d]="mark.path" />
-            @if (index === nearest()) {
-              <text class="title" [attr.x]="mark.x + titleGap" [attr.y]="titleY">
-                {{ mark.title }}
-              </text>
-            }
           }
         </g>
       </svg>
       <i class="cursor"></i>
     </div>
+    @if (title(); as title) {
+      <span
+        class="title"
+        [class.dimmed]="marksDimmed()"
+        [style.left]="'calc(50% + ' + title.dx + 'px)'"
+        >{{ title.text }}</span
+      >
+    }
   `,
   styles: `
     .window {
@@ -98,9 +100,13 @@ const TITLE_RISE = 3;
       fill: var(--gold);
     }
     .title {
-      fill: var(--dim);
+      position: absolute;
+      bottom: 100%;
+      margin-bottom: 2px;
+      color: var(--dim);
       font: italic 400 12px var(--serif);
-      text-anchor: start;
+      white-space: nowrap;
+      transform: translateX(-50%);
     }
     .dimmed {
       opacity: 0.35;
@@ -129,8 +135,6 @@ export class SlideRule {
   protected readonly minorEnd = BASELINE + MINOR_TICK;
   protected readonly majorEnd = BASELINE + MAJOR_TICK;
   protected readonly labelY = LABEL_Y;
-  protected readonly titleGap = TITLE_GAP;
-  protected readonly titleY = BASELINE - TITLE_RISE;
   protected readonly scale = computed(() => {
     const param = this.param();
     const { major, minor } = scaleTicks(param);
@@ -149,10 +153,12 @@ export class SlideRule {
       return { x, title, path };
     });
   });
-  protected readonly nearest = computed(() => {
+  protected readonly title = computed(() => {
     const cursor = this.start + this.offset();
-    const distances = this.marks().map((mark) => Math.abs(mark.x - cursor));
-    return distances.indexOf(Math.min(...distances));
+    const nearest = this.marks()
+      .map((mark) => ({ text: mark.title, dx: mark.x - cursor }))
+      .sort((a, b) => Math.abs(a.dx) - Math.abs(b.dx))[0];
+    return nearest && Math.abs(nearest.dx) <= TITLE_REACH ? nearest : null;
   });
 }
 
