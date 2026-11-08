@@ -1,4 +1,12 @@
-<canvas #canvas class="main" [class.shifted]="onStatistics()"></canvas>
+<canvas
+  #canvas
+  class="main"
+  [class.shifted]="onStatistics()"
+  [class.concealed]="store.phase() === 'start' && !intro.leaving()"
+></canvas>
+@if (store.phase() === 'start') {
+  <app-start-screen [leaving]="intro.leaving()" />
+}
 @if (store.phase() !== 'start') {
   @if (host.error(); as message) {
     <p class="error">{{ message }}</p>

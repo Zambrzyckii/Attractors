@@ -8,6 +8,9 @@
   cursor: grab;
   transition: transform 600ms ease;
 }
+.main.concealed {
+  opacity: 0;
+}
 .main:active {
   cursor: grabbing;
 }

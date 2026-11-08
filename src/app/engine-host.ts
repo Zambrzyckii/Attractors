@@ -5,6 +5,8 @@ import { measureRefreshRate } from '../engine/frame-clock';
 import { defaultQualityFor } from '../engine/settings';
 import { ViewerStore } from './viewer-store';
 
+export const INTRO_ZOOM = 6;
+
 @Injectable({ providedIn: 'root' })
 export class EngineHost {
   private readonly store = inject(ViewerStore);
@@ -31,6 +33,9 @@ export class EngineHost {
     try {
       const engine = new AttractorEngine(canvas, this.store.qualityId());
       engine.onStats((stats) => this.store.stats.set(stats));
+      if (this.store.phase() === 'start') {
+        engine.glideZoom(INTRO_ZOOM, INTRO_ZOOM, 0);
+      }
       engine.start();
       this.current.set(engine);
       const injector = this.injector;
