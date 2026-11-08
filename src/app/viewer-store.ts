@@ -3,8 +3,11 @@ import { ATTRACTORS, findAttractor } from '../engine/attractors/registry';
 import { BenchmarkReport, EngineStats } from '../engine/engine';
 import { ColorMode, DEFAULT_QUALITY, hasQuality } from '../engine/settings';
 
+export type Phase = 'start' | 'select' | 'view';
+
 @Injectable({ providedIn: 'root' })
 export class ViewerStore {
+  readonly phase = signal<Phase>(initialPhase());
   readonly attractorId = signal(ATTRACTORS[0].id);
   readonly params = linkedSignal(() =>
     findAttractor(this.attractorId()).params.map(({ value }) => value),
@@ -26,6 +29,10 @@ export class ViewerStore {
     const index = ATTRACTORS.findIndex(({ id }) => id === this.attractorId());
     this.attractorId.set(ATTRACTORS[(index + 1) % ATTRACTORS.length].id);
   }
+}
+
+function initialPhase(): Phase {
+  return 'view';
 }
 
 function requestedQuality(): string | null {

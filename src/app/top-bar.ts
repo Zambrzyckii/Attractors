@@ -1,11 +1,19 @@
-import { Component } from '@angular/core';
-import { RouterLink, RouterLinkActive } from '@angular/router';
+import { Component, inject } from '@angular/core';
+import { Router, RouterLink, RouterLinkActive } from '@angular/router';
+import { ViewerStore } from './viewer-store';
 
 @Component({
   selector: 'app-top-bar',
   imports: [RouterLink, RouterLinkActive],
   template: `
-    <p class="mark">Attractors</p>
+    <button
+      type="button"
+      class="mark"
+      [disabled]="store.benchmarkRunning()"
+      (click)="openSelect()"
+    >
+      Attractors
+    </button>
     <nav aria-label="Pages">
       <a
         routerLink="/"
@@ -24,9 +32,18 @@ import { RouterLink, RouterLinkActive } from '@angular/router';
       position: fixed;
       top: 22px;
       left: 30px;
-      margin: 0;
+      padding: 0;
+      border: 0;
+      background: none;
       color: var(--mute);
       font: italic 300 22px/1.2 var(--serif);
+      cursor: pointer;
+    }
+    .mark:hover:not(:disabled) {
+      color: var(--ink);
+    }
+    .mark:disabled {
+      cursor: progress;
     }
     nav {
       position: fixed;
@@ -51,4 +68,11 @@ import { RouterLink, RouterLinkActive } from '@angular/router';
     }
   `,
 })
-export class TopBar {}
+export class TopBar {
+  protected readonly store = inject(ViewerStore);
+  private readonly router = inject(Router);
+
+  protected openSelect(): void {
+    void this.router.navigate(['/']);
+  }
+}
