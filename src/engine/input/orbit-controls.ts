@@ -12,9 +12,17 @@ const IDLE_SECONDS = 3;
 const SPIN_UP_SECONDS = 0.6;
 const AUTO_ROTATE_SPEED = 0.2;
 
+interface Glide {
+  from: number;
+  to: number;
+  elapsed: number;
+  seconds: number;
+}
+
 export class OrbitControls {
   zoom = 1;
   private targetZoom = 1;
+  private glide: Glide | null = null;
   private dragPointer: number | null = null;
   private lastX = 0;
   private lastY = 0;
@@ -39,7 +47,25 @@ export class OrbitControls {
       this.spin += (1 - this.spin) * smoothing(dt, SPIN_UP_SECONDS);
     }
     this.camera.azimuth += dt * AUTO_ROTATE_SPEED * this.spin;
-    this.zoom *= (this.targetZoom / this.zoom) ** smoothing(dt, ZOOM_SECONDS);
+    if (this.glide) {
+      this.advanceGlide(this.glide, dt);
+    } else {
+      this.zoom *= (this.targetZoom / this.zoom) ** smoothing(dt, ZOOM_SECONDS);
+    }
+  }
+
+  glideZoom(from: number, to: number, seconds: number): void {
+    this.glide = { from, to, elapsed: 0, seconds };
+  }
+
+  private advanceGlide(glide: Glide, dt: number): void {
+    glide.elapsed += dt;
+    const t = glide.seconds > 0 ? Math.min(1, glide.elapsed / glide.seconds) : 1;
+    this.zoom = glide.from * (glide.to / glide.from) ** (1 - (1 - t) ** 3);
+    this.targetZoom = this.zoom;
+    if (t === 1) {
+      this.glide = null;
+    }
   }
 
   dispose(): void {
@@ -87,6 +113,7 @@ export class OrbitControls {
 
   private readonly onWheel = (event: WheelEvent): void => {
     event.preventDefault();
+    this.glide = null;
     const unit =
       event.deltaMode === WheelEvent.DOM_DELTA_LINE
         ? LINE_PIXELS

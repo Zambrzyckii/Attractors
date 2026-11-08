@@ -164,6 +164,10 @@ export class AttractorEngine {
     this.blowUp.run(this.state, this.preset);
   }
 
+  glideZoom(from: number, to: number, seconds: number): void {
+    this.controls.glideZoom(from, to, seconds);
+  }
+
   setAttractor(id: string): void {
     const preset = findAttractor(id);
     if (preset === this.preset) {
