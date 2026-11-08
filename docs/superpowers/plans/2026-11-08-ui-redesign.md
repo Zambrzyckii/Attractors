@@ -1,6 +1,6 @@
 # UI Redesign Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development or
 > superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Replace the default-looking controls with the agreed visual system and add the start screen, the selection
@@ -317,8 +317,8 @@ The router does not exist yet, so this phase builds only the title, names, toggl
 
 - [ ] **Step 1: Write `handle`.** Return early on `event.repeat` and on Ctrl, Alt or Meta. Then the Viewer column of
   the spec's Keyboard table: B scatters through `host.engine()`, H toggles `uiHidden`, R and N act only when the
-  benchmark is idle, F toggles fullscreen. On `/statistics` the same, except that H does nothing. Read the route from
-  `Router.url`. Tasks 21 and 25 add the other phases.
+  benchmark is idle, F toggles fullscreen. The router does not exist yet, so this task injects no `Router`. Tasks 11,
+  21 and 25 add the other routes and phases.
 - [ ] **Step 2: Wire it** temporarily from `Viewer` with `host: { '(window:keydown)': 'shortcuts.handle($event)' }`
   until the shell takes it in task 11.
 - [ ] **Step 3: Verify.** Build passes. Owner check: H, R, N, F and B behave as before, and with a chip focused the
@@ -335,7 +335,8 @@ The router does not exist yet, so this phase builds only the title, names, toggl
 - Produces: `export const routes: Routes` with `''` to `Viewer`, `'statistics'` to `StatisticsPage` and `'**'`
   redirecting to `''`. `App` exposes `protected readonly onStatistics: Signal<boolean>`.
 
-- [ ] **Step 1: Add the router.** `provideRouter(routes)` in `appConfig`.
+- [ ] **Step 1: Add the router.** `provideRouter(routes)` in `appConfig`. `Shortcuts.handle` now reads `Router.url`
+  and on `/statistics` ignores H.
 - [ ] **Step 2: Make `App` the shell.** `app.html` holds `<canvas #canvas class="main">`, the error text centred on
   the screen in mono 17px `--warn`, and `<router-outlet />`. `App` calls `host.start` in `afterNextRender`, `host.dispose` on destroy, and binds
   `'(window:keydown)': 'shortcuts.handle($event)'`. `onStatistics` comes from `toSignal` over `NavigationEnd` events'
@@ -545,12 +546,15 @@ The router does not exist yet, so this phase builds only the title, names, toggl
 **Interfaces:**
 - Produces: `export type Phase = 'start' | 'select' | 'view'` and `ViewerStore.phase: WritableSignal<Phase>`.
 
-- [ ] **Step 1: Add the phase.** `initialPhase()` returns `'view'` when the path starts with `/statistics` or the
-  query has `start=skip`, otherwise `'select'`. Task 24 changes the default to `'start'`.
-- [ ] **Step 2: Render by phase.** `app.html` shows the top bar and outlet only in `'view'`.
-- [ ] **Step 3: Make the mark a button.** It sets `phase` to `'select'` and navigates to `/`. Disabled while the
-  benchmark runs.
-- [ ] **Step 4: Verify.** Build passes. Owner check: `/?start=skip` opens the viewer, `/statistics` opens Statistics.
+- [ ] **Step 1: Add the phase.** `initialPhase()` returns `'view'` for now. The ring does not exist yet, and every
+  task must leave a working app. Task 21 changes the default to `'select'` and task 24 to `'start'`, each time keeping
+  `'view'` when the path starts with `/statistics` or the query has `start=skip`.
+- [ ] **Step 2: Render by phase.** `app.html` shows the top bar and outlet only in `'view'`. The shell's error text
+  shows in every phase except `'start'`, where the start screen shows it.
+- [ ] **Step 3: Make the mark a button.** For now it only navigates to `/`. Task 21 makes it set `phase` to
+  `'select'`. Disabled while the benchmark runs.
+- [ ] **Step 4: Verify.** Build passes. Owner check: the app behaves exactly as after task 19, and the mark returns
+  from Statistics to the viewer.
 - [ ] **Step 5: Commit** `Add app phase to the store`.
 
 ### Task 21: System ring
@@ -560,8 +564,9 @@ The router does not exist yet, so this phase builds only the title, names, toggl
 - Modify: `src/app/app.html`, `src/app/shortcuts.ts`
 
 **Interfaces:**
-- Produces: component `SystemRing`, selector `app-system-ring`, no inputs. Local `turns = signal(0)`. The front
-  index is `turns` modulo the number of systems.
+- Produces: component `SystemRing`, selector `app-system-ring`, no inputs. Local `turns`, starting at the index of
+  `store.attractorId()` in `ATTRACTORS`, so returning to the ring keeps the current system and its parameters. The
+  front index is `turns` modulo the number of systems.
 
 - [ ] **Step 1: Place the names with CSS trigonometry.** Register `@property --a { syntax: '<angle>'; inherits: false;
   initial-value: 0deg }` in `src/styles.css`. Each name is a `<button>` with
@@ -578,7 +583,8 @@ The router does not exist yet, so this phase builds only the title, names, toggl
   where the native click does it. A click on a button turns the ring to it, or opens it when it is in front. `focus`
   on a button turns the ring to it.
 - [ ] **Step 4: Open.** Set `store.attractorId` to the front system at once, then `phase` to `'view'`.
-- [ ] **Step 5: Hand the keys over.** `Shortcuts.handle` does nothing in `'select'` except F.
+- [ ] **Step 5: Hand the keys over.** `Shortcuts.handle` does nothing in `'select'` except F. `initialPhase()` now
+  defaults to `'select'`, and the mark sets `phase` to `'select'` before navigating to `/`.
 - [ ] **Step 6: Verify.** Build passes. Owner check: names slide along the ellipse and grow toward the front, Enter
   opens the viewer on that system, the mark returns to the ring, and the Review Focus check for task 21.
 - [ ] **Step 7: Commit** `Add system selection ring`.
@@ -628,7 +634,8 @@ The router does not exist yet, so this phase builds only the title, names, toggl
   `INTRO_ZOOM = 6`.
 
 - [ ] **Step 1: Default to Start.** `initialPhase()` returns `'start'` instead of `'select'`. During `'start'` the main
-  canvas has opacity 0, and `EngineHost.start` calls `glideZoom(INTRO_ZOOM, INTRO_ZOOM, 0)` after creating the engine.
+  canvas has opacity 0. `EngineHost.start` calls `glideZoom(INTRO_ZOOM, INTRO_ZOOM, 0)` after creating the engine only
+  when `store.phase() === 'start'`, so `?start=skip` and `/statistics` keep normal framing.
 - [ ] **Step 2: Lay out `StartScreen`.** The title "Attractors" in serif italic 200 at 132px, centred at 16% from the
   top. A row of four square canvases 17vw wide centred at 62% and spaced at 20%, 40%, 60% and 80% of the width, each
   with its name below in serif italic 15px `--dim`. The prompt at 89% in mono 15px `--mute`, breathing on a 2.6 s
