@@ -13,15 +13,20 @@ The Lorenz shots are taken six seconds after the start, while the seed cube is s
 
 ## Features
 
-- Four attractors (Lorenz, Aizawa, Halvorsen and Burke-Shaw) with live parameter sliders. A parameter change glides
-  over 2 seconds and the particles keep flying, so you can watch the attractor morph.
-- The Lorenz ρ slider has marks at five bifurcation points, from the origin losing stability at ρ = 1 to the periodic
-  window at ρ = 99.65.
+- A start screen with the four systems spinning live, a camera flight into the figure and a tilted ring to pick the
+  system.
+- Four attractors (Lorenz, Aizawa, Halvorsen and Burke-Shaw) with live parameters. Each value opens a slide rule whose
+  scale moves under a fixed cursor. A parameter change glides over 2 seconds and the particles keep flying, so you can
+  watch the attractor morph.
+- The Lorenz ρ scale is logarithmic and has marks at five bifurcation points, from the origin losing stability at
+  ρ = 1 to the periodic window at ρ = 99.65. Dragging snaps to a mark, and `[` and `]` jump between them.
 - RK4 integration on the GPU, with the time step adapted to the live mean speed.
 - HDR long exposure, a six-level bloom, automatic exposure, AgX tone mapping, dithering and depth of field.
 - Two colour modes. Speed colours each particle by how fast it moves. Lyapunov colours it by its finite-time Lyapunov
   exponent, blue where nearby paths converge and orange where they diverge.
-- A live estimate of the largest Lyapunov exponent λ₁ with a sparkline in the heads-up display.
+- A live estimate of the largest Lyapunov exponent λ₁, traced along the bottom edge like a seismograph.
+- A Statistics page next to the running figure, with the λ₁ history of the last 60 seconds, a histogram of the
+  finite-time exponents, the shape and motion of the particle cloud, device facts and the benchmark.
 - Four quality levels and a built-in GPU benchmark.
 
 ## Running
@@ -37,23 +42,39 @@ npm run build   # production build in dist/attractors/browser
 
 Without a URL parameter the viewer measures the display refresh rate and picks Medium at 100 Hz or more and High
 below that. `?quality=low`, `medium`, `high` or `ultra` pins a level. `?quality=tiny` (16 384 particles) exists for
-software-rendered screenshots.
+software-rendered screenshots. `?start=skip` skips the start screen and the ring and opens the viewer with the first
+system, which helps automated screenshots and benchmarks. Both parameters combine, and opening `/statistics` directly
+skips the start screen too.
 
 ## Controls
 
-| Input            | Action                                                           |
-| ---------------- | ---------------------------------------------------------------- |
-| Drag             | Orbit the camera                                                 |
-| Mouse wheel      | Zoom in and out                                                  |
-| No input for 3 s | Auto-rotate                                                      |
-| H                | Hide or show the panels and the heads-up display                 |
-| R                | Reset the parameters of the current attractor                    |
-| N                | Next attractor                                                   |
-| F                | Toggle fullscreen                                                |
-| B                | Scatter the particles to watch them fall back onto the attractor |
+| Where            | Input                                   | Action                                                           |
+| ---------------- | --------------------------------------- | ---------------------------------------------------------------- |
+| Start screen     | Any key, click or tap                   | Fly into the figure and open the ring. F also toggles fullscreen |
+| Ring             | ← and →, or N                           | Turn the ring one step                                           |
+| Ring             | Enter or Space, click on the front name | Open that system                                                 |
+| Ring             | Click or Tab on another name            | Turn the ring to it                                              |
+| Ring             | Horizontal swipe on a touch screen      | Turn the ring one step                                           |
+| Viewer           | "Attractors" mark                       | Back to the ring                                                 |
+| Figure           | Drag                                    | Orbit the camera                                                 |
+| Figure           | Mouse wheel                             | Zoom in and out                                                  |
+| Figure           | No input for 3 s                        | Auto-rotate                                                      |
+| Viewer           | Drag a parameter value                  | Change it, snapping to the default and to the marks              |
+| Focused value    | ← and →                                 | 1/1000 of the scale, 10/1000 with Shift                          |
+| Focused value    | Page Up and Page Down, Home and End     | 100/1000 of the scale, or its ends                               |
+| Focused value    | `[` and `]`                             | Previous or next mark, the default counting as a mark            |
+| Focused value    | Esc                                     | Close the slide rule                                             |
+| Viewer           | Double click a parameter value          | Reset that parameter                                             |
+| Viewer           | H                                       | Hide or show the interface                                       |
+| Viewer and Stats | R                                       | Reset the parameters of the current attractor                    |
+| Viewer and Stats | N                                       | Next attractor                                                   |
+| Everywhere       | F                                       | Toggle fullscreen                                                |
+| Viewer and Stats | B                                       | Scatter the particles to watch them fall back onto the attractor |
 
-Keys are ignored while Ctrl, Alt or Meta is held, so browser shortcuts keep working. R and N do nothing while the
-benchmark runs.
+Keys are ignored while Ctrl, Alt or Meta is held, so browser shortcuts keep working. Holding a shortcut down acts once,
+while a held arrow keeps moving a focused value.
+While the benchmark runs, R and N do nothing and the parameters, the system and option buttons and the mark are
+disabled.
 
 ## How it works
 
@@ -71,6 +92,10 @@ the other holds the shadow offset used to measure it. Every frame runs these pas
 | Stats      | Every fourth frame, reduces all particles on the GPU, alternating between their shape (centroid and spread) and their motion (mean speed and mean Lyapunov exponent). These drive the camera framing, the time step and the λ₁ estimate.                      |
 | Composite  | Mixes the bloom into the history, applies the exposure, then AgX tone mapping and dithering.                                                                                                                                                                  |
 
+Once per second, outside this list, a histogram pass gathers the finite-time exponents of a 64 by 64 grid of particles
+into 48 bins across the attractor's colour range for the Statistics page. It counts by gathering, without blending, so
+it works without `EXT_float_blend`.
+
 The `src/engine` folder is plain TypeScript and WebGL2 and never imports Angular. `src/app` holds the Angular
 components and a signal store. It drives the engine through the `AttractorEngine` facade and reads the preset and
 quality definitions from the engine modules.
@@ -81,8 +106,8 @@ The viewer uses Benettin's method. Every particle carries a shadow offset δ of 
 attractor's half extent. After each RK4 step the offset becomes δ = rk4(p + δ) − rk4(p). Once per frame the
 particle's growth |δ|/d₀ gives a rate ln(growth)/t, where t is the simulated time of that frame, and δ is scaled
 back to d₀. The rate, smoothed over one second, is the finite-time exponent used for colour. Its mean over all
-particles, averaged over 10 seconds, is the λ₁ shown in the heads-up display. The display says "measuring" until 25
-seconds after an attractor switch or after a parameter glide ends.
+particles, averaged over 10 seconds, is the λ₁ shown on the seismograph and on the Statistics page. Both say
+"measuring" until 25 seconds after an attractor switch or after a parameter glide ends.
 
 The table lists values measured in this viewer once the estimate settles.
 
@@ -100,7 +125,8 @@ Halving the time step, multiplying d₀ by 10 and switching from Low to Ultra ea
 
 ## Performance
 
-The Benchmark button renders 120 frames back to back for each quality and waits for the GPU with a 1×1 pixel read,
+The Run button under Device on the Statistics page renders 120 frames back to back for each quality and waits for the
+GPU with a 1×1 pixel read,
 because Firefox offers no GPU timer queries for WebGL2. Then it times each pass alone in the same way, so the pass
 columns do not add up to the frame time.
 
@@ -152,6 +178,8 @@ These values come from the same setup.
 
 - AgX constants from the minimal AgX implementation by Benjamin Wrensch (MIT licence).
 - Bloom filters after Jorge Jimenez, "Next Generation Post Processing in Call of Duty: Advanced Warfare", SIGGRAPH 2014.
+- Newsreader, Spline Sans Mono and STIX Two Text fonts under the SIL Open Font License 1.1, see
+  [public/fonts/OFL.txt](public/fonts/OFL.txt).
 
 ## Licence
 
