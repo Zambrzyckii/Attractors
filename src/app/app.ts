@@ -12,10 +12,12 @@ import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
 import { filter, map } from 'rxjs';
 import { EngineHost } from './engine-host';
 import { Shortcuts } from './shortcuts';
+import { TopBar } from './top-bar';
+import { ViewerStore } from './viewer-store';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet],
+  imports: [RouterOutlet, TopBar],
   templateUrl: './app.html',
   styleUrl: './app.css',
   host: { '(window:keydown)': 'shortcuts.handle($event)' },
@@ -25,6 +27,7 @@ export class App {
   private readonly router = inject(Router);
   protected readonly host = inject(EngineHost);
   protected readonly shortcuts = inject(Shortcuts);
+  protected readonly store = inject(ViewerStore);
   private readonly url = toSignal(
     this.router.events.pipe(
       filter((event) => event instanceof NavigationEnd),

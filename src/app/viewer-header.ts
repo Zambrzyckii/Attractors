@@ -71,7 +71,7 @@ import { ViewerStore } from './viewer-store';
     .system {
       position: fixed;
       left: 30px;
-      top: 18px;
+      top: 58px;
     }
     h1 {
       margin: 0;
@@ -92,7 +92,7 @@ import { ViewerStore } from './viewer-store';
     .options {
       position: fixed;
       right: 26px;
-      top: 70px;
+      top: 110px;
       display: grid;
       gap: 8px;
       justify-items: end;

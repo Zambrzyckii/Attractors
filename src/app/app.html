@@ -2,4 +2,7 @@
 @if (host.error(); as message) {
   <p class="error">{{ message }}</p>
 }
+@if (!store.uiHidden() || onStatistics()) {
+  <app-top-bar />
+}
 <router-outlet />
