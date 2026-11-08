@@ -46,6 +46,8 @@ const SPARK_PADDING = 2;
         }
         <dt>Renderer</dt>
         <dd>{{ renderer() }}</dd>
+        <dt>Keys</dt>
+        <dd>H hide · R reset · N next · F fullscreen</dd>
       </dl>
       <button type="button" [disabled]="store.benchmarkRunning()" (click)="benchmark.emit()">
         {{ store.benchmarkRunning() ? 'Measuring…' : 'Benchmark' }}

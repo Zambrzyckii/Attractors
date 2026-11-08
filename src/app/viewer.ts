@@ -22,9 +22,11 @@ import { ViewerStore } from './viewer-store';
   imports: [ControlPanel, Hud],
   template: `
     <canvas #canvas></canvas>
-    <app-control-panel />
-    @if (renderer(); as renderer) {
-      <app-hud [renderer]="renderer" (benchmark)="runBenchmark()" />
+    @if (!store.uiHidden()) {
+      <app-control-panel />
+      @if (renderer(); as renderer) {
+        <app-hud [renderer]="renderer" (benchmark)="runBenchmark()" />
+      }
     }
     @if (error(); as message) {
       <p class="error">{{ message }}</p>
@@ -59,7 +61,7 @@ export class Viewer {
   private readonly canvas = viewChild.required<ElementRef<HTMLCanvasElement>>('canvas');
   protected readonly renderer = signal<string | null>(null);
   protected readonly error = signal<string | null>(null);
-  private readonly store = inject(ViewerStore);
+  protected readonly store = inject(ViewerStore);
   private engine: AttractorEngine | null = null;
 
   constructor() {
@@ -91,8 +93,30 @@ export class Viewer {
         effect(() => engine.setQuality(this.store.qualityId()), { injector });
         effect(() => engine.setColorMode(this.store.colorMode()), { injector });
         const onKeyDown = (event: KeyboardEvent) => {
-          if (event.code === 'KeyB') {
-            engine.blowUpParticles();
+          if (event.repeat || event.ctrlKey || event.metaKey || event.altKey) {
+            return;
+          }
+          const idle = !this.store.benchmarkRunning();
+          switch (event.code) {
+            case 'KeyB':
+              engine.blowUpParticles();
+              break;
+            case 'KeyH':
+              this.store.uiHidden.update((hidden) => !hidden);
+              break;
+            case 'KeyR':
+              if (idle) {
+                this.store.resetParams();
+              }
+              break;
+            case 'KeyN':
+              if (idle) {
+                this.store.nextAttractor();
+              }
+              break;
+            case 'KeyF':
+              toggleFullscreen();
+              break;
           }
         };
         window.addEventListener('keydown', onKeyDown);
@@ -113,5 +137,13 @@ export class Viewer {
     } finally {
       this.store.benchmarkRunning.set(false);
     }
+  }
+}
+
+function toggleFullscreen(): void {
+  if (document.fullscreenElement) {
+    void document.exitFullscreen();
+  } else {
+    void document.documentElement.requestFullscreen();
   }
 }

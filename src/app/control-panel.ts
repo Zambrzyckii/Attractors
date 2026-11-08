@@ -22,7 +22,7 @@ import { ViewerStore } from './viewer-store';
         type="button"
         class="reset"
         [disabled]="store.benchmarkRunning() || atDefaults()"
-        (click)="reset()"
+        (click)="store.resetParams()"
       >
         Reset
       </button>
@@ -144,9 +144,5 @@ export class ControlPanel {
     this.store.params.update((values) =>
       values.map((current, other) => (other === index ? value : current)),
     );
-  }
-
-  protected reset(): void {
-    this.store.params.set(this.preset().params.map(({ value }) => value));
   }
 }

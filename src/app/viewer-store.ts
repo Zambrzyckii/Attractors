@@ -16,6 +16,16 @@ export class ViewerStore {
   readonly stats = signal<EngineStats | null>(null);
   readonly benchmark = signal<BenchmarkReport | null>(null);
   readonly benchmarkRunning = signal(false);
+  readonly uiHidden = signal(false);
+
+  resetParams(): void {
+    this.params.set(findAttractor(this.attractorId()).params.map(({ value }) => value));
+  }
+
+  nextAttractor(): void {
+    const index = ATTRACTORS.findIndex(({ id }) => id === this.attractorId());
+    this.attractorId.set(ATTRACTORS[(index + 1) % ATTRACTORS.length].id);
+  }
 }
 
 function requestedQuality(): string | null {
