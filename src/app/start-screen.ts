@@ -58,9 +58,12 @@ const FIGURE_QUALITY = 'tiny';
       width: var(--size);
       margin: 0;
       transform: translate(-50%, -50%);
-      transition: transform 1200ms cubic-bezier(0.33, 1, 0.68, 1);
+      transition:
+        transform 1200ms cubic-bezier(0.33, 1, 0.68, 1),
+        opacity 850ms ease-in;
     }
     :host(.leaving) figure {
+      opacity: 0;
       transform: translate(calc(-50% + var(--dx) * 1.5), calc(-50% + var(--dy) * 1.5)) scale(2.2);
     }
     :host(.leaving) :is(h1, figcaption, p) {
